@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <title>UPPL QC Command Center</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- STABLE WORD LIBRARIES -->
+    <script src="https://unpkg.com/pizzip@3.1.7/dist/pizzip.min.js"></script>
+    <script src="https://unpkg.com/docxtemplater@3.45.0/build/docxtemplater.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <style>
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        .toast { min-width: 250px; padding: 16px; border-radius: 8px; color: white; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transform: translateY(-20px); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #10B981; }
+        .toast.error { background-color: #EF4444; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans pb-20">
+
+    <div id="toast-container"></div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+            <h2 class="text-2xl font-black text-center text-blue-900 mb-6">UPPL QC ADMIN LOGIN</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Company ID</label>
+                    <input type="email" id="loginEmail" placeholder="admin@uppl.com" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Password</label>
+                    <input type="password" id="loginPass" placeholder="******" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow hover:bg-blue-700 transition">
+                    Login / Sign Up
+                </button>
+                <p class="text-[10px] text-center text-gray-500 mt-2 font-bold">
+                    *Pehli baar login karne par account apne aap ban jayega. Yahi ID PC aur Phone dono me use karein.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden">
+        <div class="bg-blue-900 shadow-md sticky top-0 z-50">
+            <div class="max-w-4xl mx-auto flex">
+                <button id="tabScanBtn" onclick="switchTab('scan')" class="flex-1 py-4 font-bold text-center transition bg-blue-700 text-white border-b-4 border-yellow-400">
+                    📝 QC Scanner
+                </button>
+                <button id="tabWorkbookBtn" onclick="switchTab('workbook')" class="flex-1 py-4 font-bold text-center transition text-blue-300 hover:bg-blue-800">
+                    💻 PC View (History)
+                </button>
+                <button onclick="handleLogout()" class="px-4 py-4 font-bold text-center transition text-red-300 hover:bg-blue-800 text-xs uppercase tracking-wider border-l border-blue-800">
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="max-w-4xl mx-auto mt-6 px-4">
+            
+            <!-- SCAN TAB -->
+            <div id="scanTab" class="block">
+                <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">1. Phone Scanner (Cloud Synced ☁️)</h2>
+
+                    <!-- SECURE API KEY BOX -->
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-300 mb-6 shadow-sm">
+                        <label class="block text-sm font-bold text-green-900 mb-1">🔑 Tier-1 Verified API Key</label>
+                        <input type="password" id="apiKey" onchange="saveSettingsToCloud()" placeholder="Apni AIzaSy... key dalein (Cloud me save hogi)" class="w-full text-sm bg-white p-2 border rounded font-mono text-gray-800 mb-3">
+                        
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Konsa Model Use Karna Hai?</label>
+                        <select id="aiModel" class="w-full p-2 border rounded font-bold text-sm text-blue-900 bg-white">
+                            <option value="gemini-2.5-flash" selected>⭐ Gemini 2.5 Flash (Sabse Best & Fast)</option>
+                            <option value="gemini-2.0-flash">🚀 Gemini 2.0 Flash</option>
+                        </select>
+                    </div>
+
+                    <!-- DUAL TEMPLATE UPLOADER -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-300 shadow-sm relative">
+                            <label class="block text-sm font-bold text-blue-900 mb-1">📦 Upload INNER Template</label>
+                            <input type="file" accept=".docx" onchange="loadTemplate(event, 'Inner')" class="w-full text-xs bg-white p-1 border rounded">
+                            <p id="statusInner" class="text-[10px] text-red-500 font-bold mt-1">❌ Inner Missing</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg border border-purple-300 shadow-sm relative">
+                            <label class="block text-sm font-bold text-purple-900 mb-1">🗃️ Upload OUTER Template</label>
+                            <input type="file" accept=".docx" onchange="loadTemplate(event, 'Outer')" class="w-full text-xs bg-white p-1 border rounded">
+                            <p id="statusOuter" class="text-[10px] text-red-500 font-bold mt-1">❌ Outer Missing</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 text-center mb-6 font-bold">*Templates aur API Key ab ek baar daalne par hamesha ke liye Cloud me save ho jayengi!</p>
+
+                    <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 bg-gray-50 text-center mb-6">
+                        <label class="block text-sm font-bold text-gray-800 mb-2">📸 Upload GRN Photo</label>
+                        <input type="file" id="grnImage" accept="image/*" onchange="handleImageUpload(event)" class="max-w-xs mx-auto text-sm bg-white p-2 border rounded block mb-2">
+                        
+                        <!-- THE MAGIC CHAT BOX -->
+                        <label class="block text-xs font-bold text-blue-700 mt-4 text-left">💬 Command to AI (PO/AR & GSM logic):</label>
+                        <textarea id="aiCommand" placeholder="Example: Pehle 2 Inner (PO 498), baki Outer (PO 499). GSM 280 se 295 ke beech rakho..." class="w-full text-sm bg-white p-3 border-2 border-blue-300 rounded-lg h-24 shadow-inner font-medium text-gray-800"></textarea>
+
+                        <img id="imagePreview" class="mt-4 max-h-40 mx-auto border shadow-lg rounded hidden">
+                    </div>
+
+                    <button id="processBtn" onclick="processImage()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 text-lg transition-transform active:scale-95">
+                        🤖 Scan & Apply Smart Logic
+                    </button>
+
+                    <div id="loadingText" class="text-center font-bold text-blue-600 mt-4 hidden animate-pulse text-sm">
+                        AI aapki command aur GSM adjust kar raha hai... Rukein.
+                    </div>
+
+                    <!-- RESULTS SECTION -->
+                    <div id="resultSection" class="mt-8 border-t-2 pt-6 hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-green-700">Step 2: Verify & Send to PC ⬇️</h3>
+                            <button onclick="addManualRow()" class="bg-gray-800 text-white text-xs px-3 py-2 rounded shadow hover:bg-gray-700">+ Add Item</button>
+                        </div>
+
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-300 mb-6 shadow-sm">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="col-span-2 md:col-span-4">
+                                    <label class="block text-xs font-bold text-gray-600">Supplier Name</label>
+                                    <input type="text" id="inpSupplier" class="w-full p-2 border rounded font-bold text-sm bg-white" onchange="syncCommonData()">
+                                </div>
+                                <div class="col-span-2"><label class="block text-xs font-bold text-gray-500">GRN No.</label><input type="text" id="inpGrn" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData()"></div>
+                                <div><label class="block text-xs font-bold text-gray-500">D.C. No</label><input type="text" id="inpDcNo" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData()"></div>
+                                <div><label class="block text-xs font-bold text-gray-500">D.C. Date</label><input type="text" id="inpDcDate" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData()"></div>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto mb-6 shadow-sm border rounded-lg bg-gray-200 p-2">
+                            <div id="batchTableBody" class="space-y-3">
+                                <!-- Cards will inject here -->
+                            </div>
+                        </div>
+
+                        <!-- BIG SEND TO PC BUTTON -->
+                        <button onclick="saveToDatabase()" class="w-full bg-green-600 text-white font-black py-5 rounded-xl shadow-lg hover:bg-green-700 transition flex items-center justify-center gap-2 mb-4 text-xl">
+                            🚀 SEND DATA TO PC (HISTORY)
+                        </button>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <button onclick="downloadWord('Inner')" class="w-full bg-blue-500 text-white text-sm font-bold py-3 rounded-xl shadow hover:bg-blue-600 transition flex items-center justify-center gap-2">
+                                📦 Download INNER
+                            </button>
+                            <button onclick="downloadWord('Outer')" class="w-full bg-purple-500 text-white text-sm font-bold py-3 rounded-xl shadow hover:bg-purple-600 transition flex items-center justify-center gap-2">
+                                🗃️ Download OUTER
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORKBOOK TAB (PC VIEW) -->
+            <div id="workbookTab" class="hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500">
+                    <h2 class="text-2xl font-black text-gray-800 mb-2 border-b pb-2">💻 PC View (Master Data)</h2>
+                    <p class="text-xs text-gray-500 mb-6 font-bold">Yahan par phone se bheja gaya saara data ekdum details me dikhega. PC me ye page khol kar rakhein.</p>
+                    
+                    <div id="workbookContainer" class="space-y-6">
+                        <div class="text-center py-10 text-gray-500">Waiting for scans from phone...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnt87woppTbR8b1d9cCaqFTQOptf2YGAA",
+            authDomain: "salary-tracker-768a9.firebaseapp.com",
+            projectId: "salary-tracker-768a9",
+            storageBucket: "salary-tracker-768a9.firebasestorage.app",
+            messagingSenderId: "533403739591",
+            appId: "1:533403739591:web:ceba8d71751b1963fd25e2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser = null;
+        let unsubHistory = null;
+
+        // Ab templates me Base64 (Data URL) save hoga, taaki Cloud me ja sake
+        window.templates = { Inner: null, Outer: null };
+        window.base64Image = '';
+        window.extractedData = null;
+        window.historyData = [];
+        window.expandedGrnId = null;
+
+        // --- AUTHENTICATION & CLOUD SETTINGS LOGIC ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                showToast("Login Successful! Loading settings...", "success");
+                await loadSettingsFromCloud(); // Load saved API key & templates
+                fetchWorkbook(); // Load PC history
+            } else {
+                currentUser = null;
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+                if(unsubHistory) unsubHistory(); 
+            }
+        });
+
+        window.handleLogin = async function() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            if(!email || pass.length < 6) return alert("Email aur kam se kam 6 character ka password daalein!");
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (err) {
+                if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, pass);
+                        showToast("Naya Admin Account Ban Gaya!", "success");
+                    } catch(e2) {
+                        alert("Error: " + e2.message);
+                    }
+                } else {
+                    alert("Login Error: " + err.message);
+                }
+            }
+        };
+
+        window.handleLogout = () => signOut(auth);
+
+        // CLOUD SYNC FUNCTIONS FOR SETTINGS
+        window.saveSettingsToCloud = async function() {
+            if(!currentUser) return;
+            const apiKey = document.getElementById('apiKey').value.trim();
+            try {
+                await setDoc(doc(db, 'users', currentUser.uid, 'config', 'settings'), {
+                    apiKey: apiKey,
+                    innerTemplateBase64: window.templates.Inner || null,
+                    outerTemplateBase64: window.templates.Outer || null,
+                    updatedAt: Date.now()
+                }, { merge: true });
+                showToast("Settings Cloud me Save ho gayi! ☁️", "success");
+            } catch(e) {
+                console.error("Settings save error:", e);
+            }
+        }
+
+        async function loadSettingsFromCloud() {
+            if(!currentUser) return;
+            try {
+                const snap = await getDoc(doc(db, 'users', currentUser.uid, 'config', 'settings'));
+                if(snap.exists()) {
+                    const data = snap.data();
+                    if(data.apiKey) {
+                        document.getElementById('apiKey').value = data.apiKey;
+                    }
+                    if(data.innerTemplateBase64) {
+                        window.templates.Inner = data.innerTemplateBase64;
+                        document.getElementById('statusInner').innerText = "✓ Inner Ready (Cloud se loaded ☁️)";
+                        document.getElementById('statusInner').className = "text-xs text-green-600 font-bold mt-1";
+                    }
+                    if(data.outerTemplateBase64) {
+                        window.templates.Outer = data.outerTemplateBase64;
+                        document.getElementById('statusOuter').innerText = "✓ Outer Ready (Cloud se loaded ☁️)";
+                        document.getElementById('statusOuter').className = "text-xs text-green-600 font-bold mt-1";
+                    }
+                }
+            } catch(e) {
+                console.error("Settings load error:", e);
+            }
+        }
+
+        const pmDatabase = {
+            "Big Fun": "ITC Cyber XL Board With MET PET, Printing, Embossing, Spot UV, and UV Coating",
+            "Life": "ITC Cyber XL Board With 4 Colour Printing UV Coating",
+            "Max Red": "ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating",
+            "Xplore": "ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating",
+            "Instaplay": "ITC Cyber XL Board With 4 Colour Printing UV Coating"
+        };
+
+        const getSpec = (brandName, category) => {
+            if(category === 'Outer') return "Standard ITC Cyber XL Board / Outer Corrugated Box (As per Master)";
+            for (const key in pmDatabase) {
+                if (brandName.toLowerCase().includes(key.toLowerCase())) return pmDatabase[key];
+            }
+            return "Standard ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating";
+        };
+
+        window.showToast = function(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        window.switchTab = function(tabName) {
+            document.getElementById('scanTab').classList.toggle('hidden', tabName !== 'scan');
+            document.getElementById('workbookTab').classList.toggle('hidden', tabName !== 'workbook');
+            const scanBtn = document.getElementById('tabScanBtn');
+            const wbBtn = document.getElementById('tabWorkbookBtn');
+            if(tabName === 'scan') {
+                scanBtn.className = "flex-1 py-4 font-bold text-center transition bg-blue-700 text-white border-b-4 border-yellow-400";
+                wbBtn.className = "flex-1 py-4 font-bold text-center transition text-blue-300 hover:bg-blue-800";
+            } else {
+                wbBtn.className = "flex-1 py-4 font-bold text-center transition bg-blue-700 text-white border-b-4 border-yellow-400";
+                scanBtn.className = "flex-1 py-4 font-bold text-center transition text-blue-300 hover:bg-blue-800";
+            }
+        }
+
+        window.loadTemplate = function(e, type) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = evt => {
+                // Cloud me save karne ke liye Base64 format me read karna zaroori hai
+                window.templates[type] = evt.target.result; 
+                document.getElementById(`status${type}`).innerText = `✓ ${type} Ready (Naya Uploaded)`;
+                document.getElementById(`status${type}`).className = "text-xs text-green-600 font-bold mt-1";
+                saveSettingsToCloud(); // Immediately save to cloud
+            };
+            // Read as Data URL (Base64) to allow Firestore storage
+            reader.readAsDataURL(file); 
+        }
+
+        window.handleImageUpload = function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = evt => {
+                document.getElementById('imagePreview').src = evt.target.result;
+                document.getElementById('imagePreview').classList.remove('hidden');
+                window.base64Image = evt.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
+        }
+
+        const calculateAQL = (qty) => {
+            let s_lvl1 = qty > 500 ? 200 : 80;
+            let s_lvl2 = qty > 500 ? 500 : 200;
+            return {
+                s_s2: 13, ar_s2: "0/1",
+                s_lvl1: s_lvl1, ar_lvl1: "5/6",
+                s_lvl2: s_lvl2, ar_lvl2: "21/22"
+            };
+        };
+
+        const generateGSMMath = (category) => {
+            const cmd = document.getElementById('aiCommand').value.toLowerCase();
+            let minGSM = category === 'Outer' ? 350 : 253;
+            let maxGSM = category === 'Outer' ? 355 : 255;
+
+            if (cmd.includes("gsm")) {
+                const numbers = cmd.match(/\d{3}/g);
+                if (numbers && numbers.length >= 2) {
+                    const sorted = numbers.map(Number).sort((a,b) => a-b);
+                    minGSM = sorted[0]; maxGSM = sorted[1];
+                } else if (numbers && numbers.length === 1) {
+                    minGSM = Number(numbers[0]); maxGSM = minGSM + 5;
+                }
+            }
+
+            let mathObj = {};
+            let total = 0;
+            for(let i=1; i<=9; i++) {
+                let randomGsm = Math.random() * (maxGSM - minGSM) + minGSM;
+                let calculatedWeight = (randomGsm * 0.625) / 1000;
+                mathObj[`w${i}`] = calculatedWeight.toFixed(3);
+                mathObj[`g${i}`] = randomGsm.toFixed(1);
+                total += randomGsm;
+            }
+            mathObj.avg_gsm = (total / 9).toFixed(1);
+            return mathObj;
+        };
+
+        window.processImage = async function() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const modelName = document.getElementById('aiModel').value;
+            const customInstruction = document.getElementById('aiCommand').value.trim();
+            
+            if (!apiKey) return alert("❌ Kripya apni API Key dalein!");
+            if (!window.base64Image) return showToast("Pehle GRN photo upload karein!", "error");
+
+            const btn = document.getElementById('processBtn');
+            const loadingText = document.getElementById('loadingText');
+            btn.innerText = "⏳ Applying Logic...";
+            btn.disabled = true;
+            loadingText.classList.remove('hidden');
+
+            try {
+                const prompt = `You are an expert data extraction bot. Analyze this handwritten Goods Receipt Note (GRN).
+                
+                CRITICAL INSTRUCTIONS:
+                1. EXTRACT ALL BATCHES: Extract ALL rows from the Description table.
+                2. CATEGORY (INNER vs OUTER): Determine if each row is an "Inner" or "Outer" item based on the user command or the description text.
+                3. MULTIPLE P.O & A.R: If there are multiple PO/AR numbers, map them uniquely based on the user's command.
+                4. USER'S SPECIAL COMMAND: "${customInstruction || "If no command is given, assume items are 'Inner' unless the word 'Outer' is written in the row."}"
+                
+                Return ONLY strictly formatted JSON without markdown:
+                {
+                    "supplierName": "Supplier Name", "grnNo": "GRN No", "dcNo": "DC/Challan No", "dcDate": "DC Date",
+                    "batches": [ { "brandName": "Brand Name", "batchNo": "Batch number", "receivedQty": "Quantity (Number)", "category": "Inner or Outer", "po_no": "Assigned PO No", "po_date": "PO Date", "ar_no": "Assigned AR No", "ar_date": "AR Date" } ] 
+                }`;
+
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: window.base64Image } }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if(!res.ok) throw new Error((await res.json()).error.message);
+
+                const data = await res.json();
+                let textResult = data.candidates[0].content.parts[0].text;
+                textResult = textResult.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const info = JSON.parse(textResult);
+
+                const processedBatches = info.batches.map(b => {
+                    let qty = parseInt(b.receivedQty) || 0;
+                    let cat = (b.category === 'Outer' || b.category === 'outer') ? 'Outer' : 'Inner';
+                    return { 
+                        brand: b.brandName || "", batch: b.batchNo || "", qty, category: cat,
+                        po_no: b.po_no || "", po_date: b.po_date || "", ar_no: b.ar_no || "", ar_date: b.ar_date || "",
+                        spec: getSpec(b.brandName, cat), ...calculateAQL(qty), ...generateGSMMath(cat) 
+                    };
+                });
+
+                window.extractedData = {
+                    supplier: info.supplierName || "", grnNo: info.grnNo || "", 
+                    dcNo: info.dcNo || "", dcDate: info.dcDate || "", 
+                    batches: processedBatches
+                };
+
+                updateFormUI();
+                document.getElementById('resultSection').classList.remove('hidden');
+                showToast("Command & GSM Applied! ✅", "success");
+
+            } catch (e) {
+                alert("❌ API ERROR:\n" + e.message);
+            } finally {
+                btn.innerText = "🤖 Scan & Apply Smart Logic";
+                btn.disabled = false;
+                loadingText.classList.add('hidden');
+            }
+        };
+
+        window.syncCommonData = function() {
+            if(!window.extractedData) return;
+            window.extractedData.supplier = document.getElementById('inpSupplier').value;
+            window.extractedData.grnNo = document.getElementById('inpGrn').value;
+            window.extractedData.dcNo = document.getElementById('inpDcNo').value;
+            window.extractedData.dcDate = document.getElementById('inpDcDate').value;
+        };
+
+        function updateFormUI() {
+            if(!window.extractedData) return;
+            const d = window.extractedData;
+            document.getElementById('inpSupplier').value = d.supplier;
+            document.getElementById('inpGrn').value = d.grnNo;
+            document.getElementById('inpDcNo').value = d.dcNo;
+            document.getElementById('inpDcDate').value = d.dcDate;
+            renderBatchTable();
+        }
+
+        window.addManualRow = function() {
+            if(!window.extractedData) window.extractedData = { supplier: "", grnNo: "", dcNo: "", dcDate: "", batches: [] };
+            window.extractedData.batches.push({ brand: "New Item", batch: "LF001/25", qty: 1000, category: 'Inner', po_no: "", po_date: "", ar_no: "", ar_date: "", spec: getSpec("New Item", 'Inner'), ...calculateAQL(1000), ...generateGSMMath('Inner') });
+            renderBatchTable();
+            document.getElementById('resultSection').classList.remove('hidden');
+        }
+
+        function renderBatchTable() {
+            const tbody = document.getElementById('batchTableBody');
+            tbody.innerHTML = '';
+            window.extractedData.batches.forEach((b, i) => {
+                let isInner = b.category === 'Inner';
+                tbody.innerHTML += `
+                    <div class="bg-white border rounded-xl p-3 shadow-sm relative">
+                        <button onclick="removeBatch(${i})" class="absolute top-2 right-2 text-red-500 bg-red-50 px-2 py-1 rounded text-xs border border-red-200">🗑️ Del</button>
+                        
+                        <div class="grid grid-cols-12 gap-2 pr-10 mb-2">
+                            <div class="col-span-8">
+                                <label class="text-[10px] text-gray-500 font-bold uppercase">Brand Name</label>
+                                <input type="text" value="${b.brand}" onchange="updateBatch(${i}, 'brand', this.value)" class="w-full border p-1 rounded text-sm font-bold text-gray-800">
+                            </div>
+                            <div class="col-span-4">
+                                <label class="text-[10px] text-gray-500 font-bold uppercase">Qty</label>
+                                <input type="number" value="${b.qty}" onchange="updateBatch(${i}, 'qty', this.value)" class="w-full border p-1 rounded text-sm text-blue-700 font-mono">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 mb-2 border-b pb-2">
+                            <div class="col-span-4">
+                                <label class="text-[10px] text-gray-500 font-bold uppercase">Batch</label>
+                                <input type="text" value="${b.batch}" onchange="updateBatch(${i}, 'batch', this.value)" class="w-full border p-1 rounded text-xs text-indigo-700 font-mono">
+                            </div>
+                            <div class="col-span-4">
+                                <label class="text-[10px] text-gray-500 font-bold uppercase">Category</label>
+                                <select onchange="updateBatch(${i}, 'category', this.value)" class="w-full border p-1 rounded text-xs font-bold ${isInner ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">
+                                    <option value="Inner" ${isInner ? 'selected' : ''}>📦 INNER</option>
+                                    <option value="Outer" ${!isInner ? 'selected' : ''}>🗃️ OUTER</option>
+                                </select>
+                            </div>
+                            <div class="col-span-4">
+                                <label class="text-[10px] text-green-700 font-bold uppercase">Avg GSM</label>
+                                <input type="text" value="${b.avg_gsm}" readonly class="w-full border-none p-1 text-xs font-bold text-green-800 bg-green-50 rounded">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 bg-gray-50 p-2 rounded">
+                            <div><label class="text-[9px] text-blue-600 uppercase font-bold">PO No</label><input type="text" value="${b.po_no}" onchange="updateBatch(${i}, 'po_no', this.value)" class="w-full border p-1 rounded text-xs"></div>
+                            <div><label class="text-[9px] text-blue-600 uppercase font-bold">PO Date</label><input type="text" value="${b.po_date}" onchange="updateBatch(${i}, 'po_date', this.value)" class="w-full border p-1 rounded text-xs"></div>
+                            <div><label class="text-[9px] text-blue-600 uppercase font-bold">AR No</label><input type="text" value="${b.ar_no}" onchange="updateBatch(${i}, 'ar_no', this.value)" class="w-full border p-1 rounded text-xs"></div>
+                            <div><label class="text-[9px] text-blue-600 uppercase font-bold">AR Date</label><input type="text" value="${b.ar_date}" onchange="updateBatch(${i}, 'ar_date', this.value)" class="w-full border p-1 rounded text-xs"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.updateBatch = function(index, field, value) {
+            window.extractedData.batches[index][field] = value;
+            if(field === 'qty') Object.assign(window.extractedData.batches[index], calculateAQL(parseInt(value)||0));
+            if(field === 'category') {
+                window.extractedData.batches[index].spec = getSpec(window.extractedData.batches[index].brand, value);
+                Object.assign(window.extractedData.batches[index], generateGSMMath(value));
+            }
+            if(field === 'category' || field === 'qty') renderBatchTable();
+        }
+        
+        window.removeBatch = function(index) {
+            window.extractedData.batches.splice(index, 1);
+            renderBatchTable();
+        }
+
+        // Base64 Cloud Template Parsing Logic added for Word Download
+        window.downloadWord = function(targetCategory) {
+            syncCommonData();
+            if(!window.extractedData || window.extractedData.batches.length === 0) return alert("Pehle data add karein.");
+            
+            const templateDataUrl = window.templates[targetCategory];
+            if(!templateDataUrl) return alert(`🚨 Pehle ${targetCategory} ka Word Template (.docx) upload karein!`);
+
+            const filteredBatches = window.extractedData.batches.filter(b => b.category === targetCategory);
+            if(filteredBatches.length === 0) return alert(`Is GRN me koi bhi item '${targetCategory}' nahi hai.`);
+            if (typeof window.PizZip === 'undefined') return alert("🚨 LIBRARY ERROR: Internet slow hai. Page refresh karein.");
+
+            try {
+                // Extract base64 payload from Data URL
+                const base64Data = templateDataUrl.split(',')[1];
+                // Pass base64 data to PizZip directly
+                const zip = new window.PizZip(base64Data, { base64: true });
+                const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+                
+                const finalData = filteredBatches.map(b => ({
+                    ...b, supplier: window.extractedData.supplier, grn: window.extractedData.grnNo,
+                    dc_no: window.extractedData.dcNo, dc_date: window.extractedData.dcDate
+                }));
+                
+                doc.render({ batches: finalData });
+                const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                window.saveAs(out, `QC_${targetCategory}_Report_${window.extractedData.grnNo.replace(/\//g,'-')}.docx`);
+                showToast(`${targetCategory} File Downloaded!`, "success");
+            } catch(error) {
+                console.error("Word Error:", error);
+                alert("🚨 WORD TEMPLATE ERROR 🚨\nFile galat format me hai. Kripya Laptop se 'Save As -> .docx' karein.");
+            }
+        }
+
+        // SEND DATA TO PC (SAVES TO CLOUD HISTORY)
+        window.saveToDatabase = async function() {
+            if(!currentUser || !window.extractedData) return;
+            syncCommonData();
+            try {
+                await addDoc(collection(db, 'users', currentUser.uid, 'qc_word_history_master'), {
+                    timestamp: Date.now(),
+                    dateStr: new Date().toLocaleDateString('en-IN'),
+                    supplier: window.extractedData.supplier,
+                    grnNo: window.extractedData.grnNo,
+                    batches: window.extractedData.batches
+                });
+                showToast("🚀 Data sent to PC successfully!", "success");
+            } catch(e) {
+                console.error(e);
+                alert("Cloud me save karne me error aaya.");
+            }
+        }
+
+        // FETCH DATA FOR PC VIEW
+        function fetchWorkbook() {
+            if (!currentUser) return;
+            const q = query(collection(db, 'users', currentUser.uid, 'qc_word_history_master'), orderBy("timestamp", "desc"));
+            
+            unsubHistory = onSnapshot(q, (snap) => {
+                let data = [];
+                snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+                window.historyData = data;
+                renderWorkbook();
+            });
+        }
+
+        function renderWorkbook() {
+            const container = document.getElementById('workbookContainer');
+            if(window.historyData.length === 0) {
+                return container.innerHTML = '<div class="text-center py-10 text-gray-500 font-bold">Waiting for scans from phone...</div>';
+            }
+            container.innerHTML = '';
+            
+            window.historyData.forEach(record => {
+                const isExpanded = window.expandedGrnId === record.id;
+                
+                let html = `
+                <div class="border-2 border-blue-200 rounded-xl shadow-md bg-white mb-6 overflow-hidden">
+                    <div onclick="toggleExpand('${record.id}')" class="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 cursor-pointer flex justify-between items-center transition hover:bg-blue-100">
+                        <div>
+                            <div class="text-xl font-black text-blue-900">📄 GRN No: ${record.grnNo}</div>
+                            <div class="text-sm font-bold text-gray-600">Supplier: ${record.supplier} | Batches: <span class="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">${record.batches?.length || 0}</span> | Time: ${new Date(record.timestamp).toLocaleString()}</div>
+                        </div>
+                        <div class="flex gap-4 items-center">
+                            <span class="text-blue-500 text-xl font-bold">${isExpanded ? '▲' : '▼'}</span>
+                            <button onclick="event.stopPropagation(); deleteRecord('${record.id}')" class="text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-bold shadow transition">Delete</button>
+                        </div>
+                    </div>`;
+
+                if(isExpanded) {
+                    html += `<div class="p-6 bg-slate-50 border-t-2 border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-6">`;
+                    
+                    record.batches.forEach(b => {
+                        let isInner = b.category === 'Inner';
+                        let catColor = isInner ? 'blue' : 'purple';
+                        
+                        html += `
+                        <div class="border rounded-xl bg-white shadow-sm p-4 relative border-t-4 border-${catColor}-500">
+                            <span class="absolute top-0 right-0 bg-${catColor}-100 text-${catColor}-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase">
+                                ${b.category}
+                            </span>
+                            
+                            <h4 class="text-lg font-black text-gray-800 mb-1">${b.brand}</h4>
+                            <div class="text-sm text-gray-600 font-mono mb-3 bg-gray-100 p-2 rounded">
+                                Batch: <span class="font-bold text-blue-700">${b.batch}</span> | Qty: <span class="font-bold text-green-700">${b.qty}</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 mb-4 text-xs font-bold text-gray-700">
+                                <div class="bg-blue-50 p-2 rounded">PO: ${b.po_no}</div>
+                                <div class="bg-blue-50 p-2 rounded">Date: ${b.po_date}</div>
+                                <div class="bg-indigo-50 p-2 rounded">AR: ${b.ar_no}</div>
+                                <div class="bg-indigo-50 p-2 rounded">Date: ${b.ar_date}</div>
+                            </div>
+
+                            <div class="border rounded-lg overflow-hidden">
+                                <div class="bg-gray-800 text-white text-xs font-bold p-2 text-center">GSM Calculations</div>
+                                <div class="p-3 font-mono text-xs text-gray-600 space-y-1">`;
+                        
+                        for(let i=1; i<=9; i++) { 
+                            html += `
+                                <div class="flex justify-between items-center border-b border-gray-100 pb-1">
+                                    <span class="w-6">${i})</span>
+                                    <span class="w-16 text-center border-b border-gray-400 text-gray-800 font-bold">${b[`w${i}`]}</span>
+                                    <span>/ 0.625 x 1000 = </span>
+                                    <span class="font-bold text-indigo-700 w-12 text-right">${b[`g${i}`]}</span>
+                                </div>`; 
+                        }
+                        
+                        html += `
+                                </div>
+                                <div class="bg-green-100 text-green-800 font-black text-center p-2 text-sm border-t border-green-200">
+                                    Average = ${b.avg_gsm} GSM
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                }
+                html += `</div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        window.toggleExpand = function(id) { 
+            window.expandedGrnId = window.expandedGrnId === id ? null : id; 
+            renderWorkbook(); 
+        }
+
+        window.deleteRecord = async function(id) { 
+            if(confirm("Yeh pura GRN record delete ho jayega. Are you sure?")) {
+                await deleteDoc(doc(db, 'users', currentUser.uid, 'qc_word_history_master', id)); 
+            }
+        }
+    </script>
+</body>
+</html>
+
+
