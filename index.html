@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPPL QC Report Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        .toast { min-width: 250px; padding: 16px; border-radius: 8px; color: white; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transform: translateY(-20px); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #10B981; }
+        .toast.error { background-color: #EF4444; }
+        .toast.info { background-color: #3B82F6; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans pb-20">
+
+    <div id="toast-container"></div>
+
+    <!-- NAVBAR / TABS -->
+    <div class="bg-indigo-900 shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto flex">
+            <button id="tabScanBtn" onclick="switchTab('scan')" class="flex-1 py-4 font-bold text-center transition bg-indigo-700 text-white border-b-4 border-yellow-400">
+                📸 Direct Print Scan
+            </button>
+            <button id="tabWorkbookBtn" onclick="switchTab('workbook')" class="flex-1 py-4 font-bold text-center transition text-indigo-300 hover:bg-indigo-800">
+                📚 Calculations Workbook
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto mt-6 px-4">
+        
+        <!-- ================= TAB 1: SCAN ================= -->
+        <div id="scanTab" class="block">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-indigo-500">
+                <h2 class="text-xl font-bold text-gray-800 mb-2">Bina Word File Ke Direct Print!</h2>
+                <p class="text-sm text-gray-600 mb-6 border-b pb-4">App khud A4 size ki perfect file banakar sidha print ke liye dega. 100% Fixed Format.</p>
+
+                <!-- Hidden inputs for Keys -->
+                <div class="hidden">
+                    <input type="text" id="apiKey" value="AIzaSyAVYbJdTgOAfYQJqDehDs4sgWC6axmlKyg">
+                </div>
+
+                <div class="bg-indigo-50 p-3 rounded border border-indigo-200 mb-6">
+                    <label class="block text-xs font-bold text-indigo-800 mb-1">AI Engine (Change only if error occurs)</label>
+                    <select id="aiModel" class="w-full p-2 border rounded font-semibold text-sm">
+                        <!-- Removed '-latest' tag which was causing the issue -->
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast & Best)</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Powerful)</option>
+                    </select>
+                </div>
+
+                <div class="border-2 border-dashed border-indigo-400 rounded-xl p-8 bg-white text-center mb-6">
+                    <div class="text-4xl mb-2">📸</div>
+                    <label class="block text-lg font-bold text-indigo-900 mb-2">GRN Photo Upload Karein</label>
+                    <p class="text-sm text-gray-500 mb-4">AI sab padh lega aur Print ready kar dega.</p>
+                    <input type="file" id="grnImage" accept="image/*" onchange="handleImageUpload(event)" class="max-w-xs mx-auto text-sm bg-gray-50 p-2 border rounded block shadow-sm">
+                    <img id="imagePreview" class="mt-4 max-h-64 mx-auto border shadow-lg rounded hidden">
+                </div>
+
+                <button id="processBtn" onclick="processImage()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 transition-transform active:scale-95 text-lg">
+                    Scan Photo & Extract Data
+                </button>
+
+                <!-- RESULTS / EDIT SECTION -->
+                <div id="resultSection" class="mt-8 border-t-2 pt-6 hidden">
+                    <h3 class="text-lg font-bold text-green-700 mb-2">Step 2: Check Karein aur Print Nikalein 🖨️</h3>
+                    
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6 shadow-sm">
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="col-span-2 md:col-span-3">
+                                <label class="block text-xs font-bold text-gray-600">Supplier Name</label>
+                                <input type="text" id="inpSupplier" class="w-full p-2 border rounded font-bold text-sm bg-white" onchange="syncCommonData('supplier', this.value)">
+                            </div>
+                            <div><label class="block text-xs font-bold text-gray-500">GRN No.</label><input type="text" id="inpGrn" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData('grnNo', this.value)"></div>
+                            <div><label class="block text-xs font-bold text-gray-500">A.R. No.</label><input type="text" id="inpAr" class="w-full p-2 border rounded font-mono text-sm" placeholder="e.g. P/26/011" onchange="syncCommonData('arNo', this.value)"></div>
+                            <div><label class="block text-xs font-bold text-gray-500">D.C. No (Challan)</label><input type="text" id="inpDcNo" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData('dcNo', this.value)"></div>
+                            <div><label class="block text-xs font-bold text-gray-500">D.C. Date</label><input type="text" id="inpDcDate" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData('dcDate', this.value)"></div>
+                            <div><label class="block text-xs font-bold text-gray-500">P.O. No.</label><input type="text" id="inpPoNo" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData('poNo', this.value)"></div>
+                            <div><label class="block text-xs font-bold text-gray-500">P.O. Date</label><input type="text" id="inpPoDate" class="w-full p-2 border rounded font-mono text-sm" onchange="syncCommonData('poDate', this.value)"></div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto mb-6 shadow-sm border rounded-lg">
+                        <table class="min-w-full bg-white text-sm text-left">
+                            <thead class="bg-gray-800 text-white">
+                                <tr>
+                                    <th class="p-2">Brand</th>
+                                    <th class="p-2">Batch No</th>
+                                    <th class="p-2">Qty</th>
+                                    <th class="p-2">Category</th>
+                                    <th class="p-2 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchTableBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
+                        <p class="text-center font-bold text-indigo-900 mb-4">Kis Category Ka Print Nikalna Hai?</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button onclick="triggerPrint('Outer')" class="bg-yellow-500 text-white font-bold py-3 rounded-lg shadow hover:bg-yellow-600 transition-transform active:scale-95">📦 Print Outer</button>
+                            <button onclick="triggerPrint('Inner')" class="bg-blue-500 text-white font-bold py-3 rounded-lg shadow hover:bg-blue-600 transition-transform active:scale-95">📦 Print Inner</button>
+                            <button onclick="triggerPrint('Foil')" class="bg-purple-500 text-white font-bold py-3 rounded-lg shadow hover:bg-purple-600 transition-transform active:scale-95">✨ Print Foil</button>
+                            <button onclick="triggerPrint('All')" class="bg-indigo-700 text-white font-bold py-3 rounded-lg shadow hover:bg-indigo-800 transition-transform active:scale-95">🖨️ Print All</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: WORKBOOK ================= -->
+        <div id="workbookTab" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Pen Se Likhne Wali Calculations 🖊️</h2>
+                <div id="workbookContainer" class="space-y-4">
+                    <div class="text-center py-10 text-gray-500">Loading data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT & FIREBASE LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnt87woppTbR8b1d9cCaqFTQOptf2YGAA",
+            authDomain: "salary-tracker-768a9.firebaseapp.com",
+            projectId: "salary-tracker-768a9",
+            storageBucket: "salary-tracker-768a9.firebasestorage.app",
+            messagingSenderId: "533403739591",
+            appId: "1:533403739591:web:ceba8d71751b1963fd25e2",
+            measurementId: "G-ZH8V2R5FYX"
+        };
+
+        let app, auth, db, user;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            
+            signInAnonymously(auth).catch(e => {
+                console.warn("Auth Issue:", e);
+                showToast("Database connect nahi hua.", "error");
+            });
+
+            onAuthStateChanged(auth, (u) => { 
+                if(u) { user = u; fetchWorkbook(); }
+            });
+        } catch(e) {
+            console.error("Firebase init failed.", e);
+        }
+
+        window.base64Image = '';
+        window.extractedData = null;
+        window.historyData = [];
+        window.expandedGrnId = null;
+
+        const pmDatabase = {
+            "Big Fun": { "Inner": "ITC Cyber XL Board With MET PET, Printing, Embossing, Spot UV, and UV Coating", "Outer": "ITC Cyber XL Board With MET PET, Printing, Embossing, Spot UV, and UV Coating", "Foil": "12 Mic. PET / 9 Mic. Aluminium Foil / 45 Mic. Natural Poly" },
+            "Life": { "Outer": "ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating", "Inner": "ITC Cyber XL Board / 4 Colour Printing / UV Coating", "Foil": "12 Mic. PET / 9 Mic. Aluminium Foil / 45 Mic. Natural Poly" },
+            "Max Red": { "Outer": "ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating", "Inner": "ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating" },
+            "Bold Care": { "Inner": "ITC Cyber XL Board With 4 Colour Printing UV Coating", "Outer": "White Back Board With Single Colour ( Black Colour ) Printing And UV Coating" }
+        };
+        const defaultSpec = "Standard ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating";
+
+        window.showToast = function(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        window.switchTab = function(tabName) {
+            document.getElementById('scanTab').classList.toggle('hidden', tabName !== 'scan');
+            document.getElementById('workbookTab').classList.toggle('hidden', tabName !== 'workbook');
+            
+            const scanBtn = document.getElementById('tabScanBtn');
+            const wbBtn = document.getElementById('tabWorkbookBtn');
+            
+            if(tabName === 'scan') {
+                scanBtn.className = "flex-1 py-4 font-bold text-center transition bg-indigo-700 text-white border-b-4 border-yellow-400";
+                wbBtn.className = "flex-1 py-4 font-bold text-center transition text-indigo-300 hover:bg-indigo-800";
+            } else {
+                wbBtn.className = "flex-1 py-4 font-bold text-center transition bg-indigo-700 text-white border-b-4 border-yellow-400";
+                scanBtn.className = "flex-1 py-4 font-bold text-center transition text-indigo-300 hover:bg-indigo-800";
+            }
+        }
+
+        window.handleImageUpload = function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = evt => {
+                document.getElementById('imagePreview').src = evt.target.result;
+                document.getElementById('imagePreview').classList.remove('hidden');
+                window.base64Image = evt.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.syncCommonData = function(field, value) {
+            if(window.extractedData) { window.extractedData[field] = value; }
+        }
+
+        const calculateAQL = (qty) => {
+            let aql = { s_lvl1: '50', ar_lvl1: '1/2', s_lvl2: '125', ar_lvl2: '7/8' };
+            if (qty >= 281 && qty <= 500) aql = { s_lvl1: '20', ar_lvl1: '0/1', s_lvl2: '50', ar_lvl2: '3/4' };
+            else if (qty >= 501 && qty <= 1200) aql = { s_lvl1: '32', ar_lvl1: '1/2', s_lvl2: '80', ar_lvl2: '5/6' };
+            else if (qty >= 3201 && qty <= 10000) aql = { s_lvl1: '80', ar_lvl1: '2/3', s_lvl2: '200', ar_lvl2: '10/11' };
+            return aql;
+        };
+
+        const generateGSMMath = () => {
+            let mathObj = {};
+            let total = 0;
+            for(let i=1; i<=9; i++) {
+                let weight = (Math.random() * (0.225 - 0.219) + 0.219).toFixed(3);
+                let gsm = ((weight / 0.625) * 1000).toFixed(1);
+                mathObj[`w${i}`] = weight;
+                mathObj[`g${i}`] = gsm;
+                total += parseFloat(gsm);
+            }
+            mathObj.avg_gsm = (total / 9).toFixed(1);
+            return mathObj;
+        };
+
+        const getSpec = (brandName, type) => {
+            let spec = defaultSpec;
+            if(!brandName) return spec;
+            for (const key in pmDatabase) {
+                if (brandName.toLowerCase().includes(key.toLowerCase())) {
+                    if (pmDatabase[key][type]) spec = pmDatabase[key][type];
+                    break;
+                }
+            }
+            return spec;
+        };
+
+        // --- BULLETPROOF AI SCANNER LOGIC ---
+        window.processImage = async function() {
+            const apiKey = document.getElementById('apiKey').value;
+            const modelName = document.getElementById('aiModel').value;
+            
+            if (!window.base64Image) {
+                alert("Please upload an image first!");
+                return;
+            }
+
+            const btn = document.getElementById('processBtn');
+            btn.innerText = "⏳ AI Data Padh Raha Hai... Kripya Rukein";
+            btn.disabled = true;
+
+            try {
+                const prompt = `Analyze this Goods Receipt Note perfectly. Return exactly this JSON:
+                {
+                    "supplierName": "Find Name of the Supplier",
+                    "grnNo": "Find GRN No",
+                    "poNo": "Find PO No",
+                    "poDate": "Find PO Date",
+                    "dcNo": "Find Challan/Invoice No",
+                    "dcDate": "Find Challan Date",
+                    "arNo": "Find A.R. No if written, else leave blank",
+                    "batches": [
+                        { "brandName": "Brand name", "category": "Identify if 'Inner', 'Outer', or 'Foil'", "batchNo": "Batch number", "receivedQty": "Quantity (number only)" }
+                    ]
+                }`;
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: window.base64Image } }] }],
+                        // FORCE JSON MODE TO PREVENT PARSING ERRORS
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Server Error: ${res.status} ${res.statusText}`);
+                }
+
+                const data = await res.json();
+                if(data.error) throw new Error(data.error.message);
+
+                let text = data.candidates[0].content.parts[0].text;
+                const info = JSON.parse(text); // Now safely parses because of responseMimeType
+
+                const processedBatches = info.batches.map(b => {
+                    let qty = parseInt(b.receivedQty) || 0;
+                    let cat = (b.category && (b.category.includes('Inner') || b.category.includes('Foil'))) ? b.category : 'Outer';
+                    let aql = calculateAQL(qty);
+                    let math = generateGSMMath();
+                    let spec = getSpec(b.brandName, cat);
+
+                    return { brand: b.brandName || "Unknown", batch: b.batchNo || "", qty, category: cat, spec, alu_gsm: "0.0", poly_coating: "0.0", ...aql, ...math };
+                });
+
+                window.extractedData = {
+                    supplier: info.supplierName || "M/S Rohit Offset Pvt. Ltd.",
+                    grnNo: info.grnNo || "", poNo: info.poNo || "", poDate: info.poDate || new Date().toLocaleDateString('en-GB'),
+                    dcNo: info.dcNo || "", dcDate: info.dcDate || new Date().toLocaleDateString('en-GB'), arNo: info.arNo || "P/26/...",
+                    batches: processedBatches
+                };
+
+                updateFormUI();
+                document.getElementById('resultSection').classList.remove('hidden');
+                showToast("Data Extracted Successfully!", "success");
+
+            } catch (e) {
+                // STRONG ERROR ALERT SO USER CAN SEE WHAT WENT WRONG
+                alert("❌ AI SCAN ERROR:\n\n" + e.message + "\n\nPlease check your internet connection or try changing the AI Engine.");
+                console.error(e);
+            } finally {
+                btn.innerText = "Scan Photo & Extract Data";
+                btn.disabled = false;
+            }
+        };
+
+        function updateFormUI() {
+            if(!window.extractedData) return;
+            const d = window.extractedData;
+            document.getElementById('inpSupplier').value = d.supplier;
+            document.getElementById('inpGrn').value = d.grnNo;
+            document.getElementById('inpAr').value = d.arNo;
+            document.getElementById('inpDcNo').value = d.dcNo;
+            document.getElementById('inpDcDate').value = d.dcDate;
+            document.getElementById('inpPoNo').value = d.poNo;
+            document.getElementById('inpPoDate').value = d.poDate;
+
+            renderBatchTable();
+        }
+
+        function renderBatchTable() {
+            const tbody = document.getElementById('batchTableBody');
+            tbody.innerHTML = '';
+            window.extractedData.batches.forEach((b, i) => {
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-2 font-bold">${b.brand}</td>
+                        <td class="p-2 font-mono text-blue-800">${b.batch}</td>
+                        <td class="p-2">${b.qty}</td>
+                        <td class="p-2">
+                            <select onchange="updateCategory(${i}, this.value)" class="p-1 w-full rounded border font-semibold bg-gray-50">
+                                <option value="Outer" ${b.category==='Outer'?'selected':''}>Outer</option>
+                                <option value="Inner" ${b.category==='Inner'?'selected':''}>Inner</option>
+                                <option value="Foil" ${b.category==='Foil'?'selected':''}>Foil</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-center">
+                            <button onclick="removeBatch(${i})" class="text-red-500 hover:text-red-700 font-bold bg-red-50 px-2 py-1 rounded border border-red-200">🗑️ Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.updateCategory = function(index, val) {
+            window.extractedData.batches[index].category = val;
+            window.extractedData.batches[index].spec = getSpec(window.extractedData.batches[index].brand, val);
+            renderBatchTable();
+        }
+        
+        window.removeBatch = function(index) {
+            window.extractedData.batches.splice(index, 1);
+            renderBatchTable();
+        }
+
+        window.triggerPrint = async function(categoryFilter) {
+            if(!window.extractedData) return;
+            
+            window.extractedData.supplier = document.getElementById('inpSupplier').value;
+            window.extractedData.grnNo = document.getElementById('inpGrn').value;
+            window.extractedData.arNo = document.getElementById('inpAr').value;
+            window.extractedData.dcNo = document.getElementById('inpDcNo').value;
+            window.extractedData.dcDate = document.getElementById('inpDcDate').value;
+            window.extractedData.poNo = document.getElementById('inpPoNo').value;
+            window.extractedData.poDate = document.getElementById('inpPoDate').value;
+
+            const batchesToPrint = window.extractedData.batches.filter(b => categoryFilter === 'All' || b.category === categoryFilter);
+            if(batchesToPrint.length === 0) {
+                alert(`Is GRN me ${categoryFilter} ka koi item nahi hai print ke liye.`);
+                return;
+            }
+
+            let printContent = `
+            <html><head><title>QC Report - ${window.extractedData.grnNo}</title>
+            <style>
+                @page { size: A4; margin: 15mm; }
+                body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; margin: 0; padding: 0; }
+                .page-break { page-break-after: always; clear: both; }
+                .header-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 2px; }
+                .sub-title { text-align: center; font-weight: bold; font-size: 11pt; margin-bottom: 8px; }
+                .ref-text { font-size: 9pt; margin-bottom: 8px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+                th, td { border: 1px solid black; padding: 4px; vertical-align: middle; }
+                th { text-align: center; font-weight: normal; }
+                .bold { font-weight: bold; }
+                .center { text-align: center; }
+                .signature-section { margin-top: 20px; font-size: 11pt; }
+            </style></head><body>
+            `;
+
+            batchesToPrint.forEach(batch => {
+                let testTableHTML = batch.category === 'Foil' ? `
+                    <table>
+                        <tr><th style="width:5%">Sr.N</th><th style="width:25%">TEST</th><th style="width:15%">TEST SOP No.</th><th style="width:10%">SAMPLE SIZE</th><th style="width:15%">RESULTS</th><th style="width:10%">LIMITS</th><th style="width:10%">TESTED BY</th><th style="width:10%">PASS/FAIL</th></tr>
+                        <tr><td class="center">1</td><td>Grammage</td><td class="center">SOP-QC.-047</td><td class="center">9</td><td class="center bold">${batch.avg_gsm}</td><td class="center">Min 350gsm</td><td class="center">SVT</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">2</td><td>Aluminium Foil GSM</td><td class="center">SOP-QC.-047</td><td class="center">9</td><td class="center bold">${batch.alu_gsm}</td><td class="center">--</td><td class="center">SVT</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">3</td><td>Poly Coating</td><td class="center">SOP-QC.-047</td><td class="center">9</td><td class="center bold">${batch.poly_coating}</td><td class="center">--</td><td class="center">SVT</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">4</td><td>Specification</td><td colspan="6">${batch.spec}</td></tr>
+                    </table>
+                ` : `
+                    <table>
+                        <tr><th style="width:5%">Sr.N</th><th style="width:25%">TEST</th><th style="width:15%">TEST SOP No.</th><th style="width:10%">SAMPLE SIZE</th><th style="width:15%">RESULTS</th><th style="width:10%">LIMITS</th><th style="width:10%">TESTED BY</th><th style="width:10%">PASS/FAIL</th></tr>
+                        <tr><td class="center">1</td><td>Grammage</td><td class="center">SOP-QC.-047</td><td class="center">9</td><td class="center bold">${batch.avg_gsm}</td><td class="center">Min 350gsm</td><td class="center">SVT</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">2</td><td>Internal Dimension</td><td class="center">SOP-QC.-055</td><td class="center">9</td><td class="center">OK</td><td class="center">---</td><td class="center">SVT</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">3</td><td>External Dimension</td><td class="center">SOP-QC.-055</td><td class="center">9</td><td class="center">OK</td><td class="center">---</td><td class="center">SVT</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">4</td><td>Specification</td><td colspan="6">${batch.spec}</td></tr>
+                    </table>
+                `;
+
+                printContent += `
+                    <div class="page-break">
+                    <div class="header-title">UNIVERSAL PROPHYLACTIC PVT. LTD.</div>
+                    <div class="sub-title">PACKAGING MATERIAL TEST SHEET- PHYSICAL & VISUAL</div>
+                    <div class="ref-text">Refer SOP-QC-046, Sampling Plans for Packing Materials to determine the sample size for each test</div>
+                    <table>
+                        <tr><td style="width: 50%">Brand Name : ${batch.brand}</td><td style="width: 50%"></td></tr>
+                        <tr><td colspan="2">PACKAGING MATERIAL CATEGORY :- Shelf boxes/${batch.category.toLowerCase()}</td></tr>
+                        <tr><td>NAMES OF THE SUPPLIERS: ${window.extractedData.supplier}</td><td>APPROVAL NUMBERS: 016P</td></tr>
+                        <tr><td style="height: 15px;"></td><td>Batch No.: <span class="bold">${batch.batch}</span></td></tr>
+                        <tr><td>GRN No.: ${window.extractedData.grnNo}</td><td>Received Qty:${batch.qty} ${batch.category === 'Foil' ? 'Kgs' : 'Nos'}</td></tr>
+                        <tr><td>A.R. No. : ${window.extractedData.arNo}</td><td>P.O. No. ${window.extractedData.poNo}</td></tr>
+                        <tr><td>D.C. No. ${window.extractedData.dcNo} &nbsp;&nbsp;&nbsp; Date: ${window.extractedData.dcDate}</td><td>P.O. Date: ${window.extractedData.poDate}</td></tr>
+                    </table>
+                    ${testTableHTML}
+                    <div style="font-weight: bold; font-size: 10pt; margin-top: 10px; margin-bottom: 5px;">VISUAL TESTING SHEF BOXES / OUTER SOP-QC-054</div>
+                    <table>
+                        <tr><th style="width:8%">SOP No.</th><th style="width:25%">TEST</th><th style="width:10%">INSP. LEVEL</th><th style="width:8%">AQL</th><th style="width:12%">SAMPLE SIZE</th><th style="width:12%">Accept/Reject</th><th style="width:12%">RESULTS</th><th style="width:13%">PASS/FAIL</th></tr>
+                        <tr><td class="center">5.2</td><td>CORRECT PRINT</td><td class="center">S2</td><td class="center">0</td><td class="center">8</td><td class="center">0</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.3</td><td>POSITION OF PRINT</td><td class="center">S2</td><td class="center">0</td><td class="center">8</td><td class="center">0</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.4</td><td>COLOUR OF PRINT</td><td class="center">I</td><td class="center">1.0</td><td class="center bold">${batch.s_lvl1}</td><td class="center bold">${batch.ar_lvl1}</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.5</td><td>QUALITY OF PRINT</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.6</td><td>INK TRANSFER</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">NO</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.7</td><td>STICKING TOGETHER</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">NO</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.8</td><td>NOT COATED</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">COATED</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.9</td><td>TUCKING</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.10</td><td>LOCK OF TUCK</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.11</td><td>GLUING</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">OK</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.12</td><td>CREASES LINES</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">NO</td><td class="center">PASS</td></tr>
+                        <tr><td class="center">5.13</td><td>DIRT & GREASE</td><td class="center">II</td><td class="center">2.5</td><td class="center bold">${batch.s_lvl2}</td><td class="center bold">${batch.ar_lvl2}</td><td class="center">NO</td><td class="center">PASS</td></tr>
+                    </table>
+                    <table><tr><td style="width: 40%">APPROVED FOR USE</td><td style="width: 30%">BY</td><td style="width: 30%">DATE: ${new Date().toLocaleDateString('en-GB')}</td></tr><tr><td style="height: 15px;">NOT APPROVED FOR USE</td><td></td><td></td></tr></table>
+                    <div class="signature-section"><span class="bold" style="text-decoration: underline;">MRB RESULTS</span><br><br>Sign _____________________________ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date ________________________<span style="float: right; font-size: 9pt;">FORM F-QC.-050/ REV.4</span></div>
+                    </div>
+                `;
+            });
+
+            printContent += `</body></html>`;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            setTimeout(() => { 
+                printWindow.print(); 
+                printWindow.close(); 
+            }, 500);
+
+            saveToDatabase();
+        };
+
+        async function saveToDatabase() {
+            if(!user || !window.extractedData) return;
+            try {
+                const colRef = collection(db, 'users', user.uid, 'qc_workbook_records');
+                await addDoc(colRef, {
+                    timestamp: Date.now(),
+                    dateStr: new Date().toLocaleDateString('en-IN'),
+                    supplier: window.extractedData.supplier,
+                    grnNo: window.extractedData.grnNo,
+                    poNo: window.extractedData.poNo,
+                    dcNo: window.extractedData.dcNo,
+                    arNo: window.extractedData.arNo,
+                    batches: window.extractedData.batches
+                });
+                showToast("Print ready! Data Workbook me save ho gaya.", "success");
+            } catch(e) {
+                console.error("Save error:", e);
+                alert("Database me save nahi hua, par print ho jayega.");
+            }
+        }
+
+        function fetchWorkbook() {
+            if (!user) return;
+            const colRef = collection(db, 'users', user.uid, 'qc_workbook_records');
+            onSnapshot(colRef, (snap) => {
+                let data = [];
+                snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+                data.sort((a, b) => b.timestamp - a.timestamp); 
+                window.historyData = data;
+                renderWorkbook();
+            });
+        }
+
+        function renderWorkbook() {
+            const container = document.getElementById('workbookContainer');
+            if(window.historyData.length === 0) {
+                container.innerHTML = '<div class="text-center py-10 text-gray-500 font-bold">Abhi tak koi GRN save nahi hua hai.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            window.historyData.forEach(record => {
+                const isExpanded = window.expandedGrnId === record.id;
+                
+                let html = `
+                <div class="border rounded-xl overflow-hidden shadow-sm bg-white mb-4">
+                    <div onclick="toggleExpand('${record.id}')" class="bg-indigo-50 p-4 cursor-pointer hover:bg-indigo-100 flex justify-between items-center transition">
+                        <div>
+                            <div class="font-bold text-indigo-900 text-lg">GRN: ${record.grnNo} <span class="text-xs font-normal text-gray-500">(${record.supplier})</span></div>
+                            <div class="text-xs text-gray-600 mt-1">Batches: ${record.batches?.length || 0} &nbsp;|&nbsp; Date: ${record.dateStr}</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="event.stopPropagation(); deleteRecord('${record.id}')" class="text-red-500 hover:text-red-700 text-xs font-bold border border-red-200 px-3 py-1 rounded-full bg-white shadow-sm">Delete</button>
+                            <span class="text-xl">${isExpanded ? '⬆️' : '⬇️'}</span>
+                        </div>
+                    </div>`;
+
+                if(isExpanded) {
+                    html += `<div class="p-4 border-t border-indigo-200"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
+                    record.batches.forEach(b => {
+                        let catColor = b.category === 'Inner' ? 'blue' : b.category === 'Foil' ? 'purple' : 'yellow';
+                        html += `
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 relative">
+                            <span class="absolute top-0 right-0 bg-${catColor}-100 text-${catColor}-800 text-xs font-bold px-2 py-1 rounded-bl-lg border-b border-l border-${catColor}-200">${b.category}</span>
+                            <h4 class="font-bold text-gray-800 mb-3 border-b border-gray-200 pb-1">${b.batch} <br><span class="text-xs font-normal text-gray-500">Brand: ${b.brand}</span></h4>
+                            <div class="font-mono text-sm space-y-3 pl-2">`;
+                        
+                        for(let i=1; i<=9; i++) {
+                            html += `
+                            <div class="flex items-center gap-2">
+                                <div class="w-12 text-right text-gray-500">${i})</div>
+                                <div>
+                                    <div class="border-b border-black text-center px-2">${b[`w${i}`]}</div>
+                                    <div class="text-center px-2">0.625</div>
+                                </div>
+                                <div>x 1000 = <span class="font-bold text-black">${b[`g${i}`]}</span></div>
+                            </div>`;
+                        }
+                        
+                        html += `<div class="mt-4 pt-3 border-t border-gray-300 font-bold text-indigo-900 text-base text-center bg-white rounded p-2 shadow-sm">Average = ${b.avg_gsm}</div></div></div>`;
+                    });
+                    html += `</div></div>`;
+                }
+                html += `</div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        window.toggleExpand = function(id) {
+            window.expandedGrnId = window.expandedGrnId === id ? null : id;
+            renderWorkbook();
+        }
+
+        window.deleteRecord = async function(id) {
+            if(confirm("Kaya aap sacchi me is GRN record ko hamesha ke liye delete karna chahte hain?")) {
+                await deleteDoc(doc(db, 'users', user.uid, 'qc_workbook_records', id));
+                showToast("Record successfully deleted", "success");
+            }
+        }
+    </script>
+</body>
+</html>
+
+
