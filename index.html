@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPPL QC Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.11/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; }
+        .hidden-app { display: none; }
+        .tab-active { border-bottom: 4px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .input-box { border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 12px; width: 100%; outline: none; transition: border 0.2s; }
+        .input-box:focus { border-color: #3b82f6; }
+        
+        /* Custom Scrollbar for chat */
+        #chat-history::-webkit-scrollbar { width: 6px; }
+        #chat-history::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col">
+
+    <div id="auth-screen" class="flex flex-col items-center justify-center h-full bg-slate-900">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">UPPL QC Login</h2>
+            <input type="email" id="auth-email" placeholder="Email" class="input-box mb-4 bg-slate-50">
+            <input type="password" id="auth-pass" placeholder="Password" class="input-box mb-6 bg-slate-50">
+            <button id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2 transition">Login</button>
+            <button id="btn-signup" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded transition">Sign Up</button>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden-app flex flex-col h-full">
+        <nav class="bg-white shadow-md sticky top-0 z-50 flex justify-between items-center px-6 py-0">
+            <div class="flex space-x-6 h-full pt-4">
+                <button id="tab-scanner" class="pb-3 px-2 tab-active transition">QC Scanner</button>
+                <button id="tab-pc" class="pb-3 px-2 text-gray-500 hover:text-blue-500 transition">PC View</button>
+            </div>
+            <div class="flex items-center space-x-4 pb-2">
+                <span id="user-display" class="text-sm font-semibold text-gray-600"></span>
+                <button id="btn-logout" class="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded transition">Logout</button>
+            </div>
+        </nav>
+
+        <div class="flex-grow overflow-auto p-6 relative">
+
+            <div id="view-scanner" class="max-w-6xl mx-auto">
+                
+                <div class="card mb-6 overflow-hidden">
+                    <div id="settings-header" class="bg-slate-800 text-white px-4 py-3 cursor-pointer flex justify-between items-center font-semibold">
+                        <span>⚙️ Settings & Configuration</span>
+                        <span id="settings-icon">▼</span>
+                    </div>
+                    <div id="settings-body" class="p-4 grid grid-cols-2 gap-4 hidden bg-slate-50">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500">Gemini API Key</label>
+                            <input type="password" id="api-key" class="input-box text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500">Model</label>
+                            <select id="api-model" class="input-box text-sm">
+                                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs font-bold text-gray-500">Custom AI Persona</label>
+                            <textarea id="ai-persona" rows="2" class="input-box text-sm"></textarea>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs font-bold text-gray-500">PM Spec Master List</label>
+                            <textarea id="pm-spec" rows="2" class="input-box text-sm"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500">INNER Template (.docx)</label>
+                            <input type="file" id="file-inner" accept=".docx" class="text-sm w-full mt-1">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500">OUTER Template (.docx)</label>
+                            <input type="file" id="file-outer" accept=".docx" class="text-sm w-full mt-1">
+                        </div>
+                        <div class="col-span-2 flex justify-end mt-2">
+                            <button id="btn-save-settings" class="bg-green-600 hover:bg-green-700 text-white text-sm py-1 px-4 rounded">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-slate-800">Active QC Scan Data</h2>
+                    <button id="btn-start-ai" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2">
+                        ✨ Start AI Assistant
+                    </button>
+                </div>
+
+                <div id="qc-form-container" class="card p-6 mb-6">
+                    <div class="text-center text-gray-400 py-10" id="empty-state">No active data. Use AI Assistant to extract or load from history.</div>
+                    
+                    <div id="active-data-ui" class="hidden">
+                        <div class="grid grid-cols-5 gap-4 mb-6 pb-6 border-b border-gray-200">
+                            <div><label class="text-xs font-bold text-gray-500">SUPPLIER</label><input type="text" id="common-supplier" class="input-box font-bold text-blue-800" onchange="autoSave()"></div>
+                            <div><label class="text-xs font-bold text-gray-500">APPROVAL NO</label><input type="text" id="common-approval" class="input-box" onchange="autoSave()"></div>
+                            <div><label class="text-xs font-bold text-gray-500">GRN NO</label><input type="text" id="common-grn" class="input-box" onchange="autoSave()"></div>
+                            <div><label class="text-xs font-bold text-gray-500">DC NO</label><input type="text" id="common-dcno" class="input-box" onchange="autoSave()"></div>
+                            <div><label class="text-xs font-bold text-gray-500">DC DATE</label><input type="text" id="common-dcdate" class="input-box" onchange="autoSave()"></div>
+                        </div>
+
+                        <div id="batches-container" class="space-y-8"></div>
+
+                        <div class="mt-8 pt-4 border-t border-gray-200 flex justify-end">
+                            <button id="btn-send-pc" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded shadow-lg text-lg">
+                                📤 SEND DATA TO PC
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-pc" class="max-w-6xl mx-auto hidden">
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-slate-800">Master History (PC View)</h2>
+                        <div class="space-x-2">
+                            <button id="btn-dl-inner" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded font-semibold text-sm shadow">Download Merged INNER</button>
+                            <button id="btn-dl-outer" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded font-semibold text-sm shadow">Download Merged OUTER</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-sm text-slate-600">
+                                    <th class="p-2 border"><input type="checkbox" id="chk-all"></th>
+                                    <th class="p-2 border">Timestamp</th>
+                                    <th class="p-2 border">GRN No</th>
+                                    <th class="p-2 border">Supplier</th>
+                                    <th class="p-2 border">Brand/Batch</th>
+                                    <th class="p-2 border">Category</th>
+                                    <th class="p-2 border">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="text-sm">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="chat-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-end">
+        <div class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl transform transition-transform duration-300 translate-x-full" id="chat-panel">
+            <div class="bg-purple-700 text-white p-4 flex justify-between items-center shadow-md z-10">
+                <h3 class="font-bold text-lg">✨ AI Assistant (adi papa)</h3>
+                <button id="btn-close-chat" class="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+            </div>
+            
+            <div id="chat-history" class="flex-grow p-4 overflow-y-auto bg-slate-50 space-y-4">
+                <div class="bg-purple-100 text-purple-900 p-3 rounded-lg max-w-[85%] self-start text-sm shadow-sm">
+                    Namaste beta! Main 'adi papa' hoon. GRN image bhejo ya 'edit Pm/...' type karo.
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border-t border-gray-200 flex items-center space-x-2 z-10">
+                <input type="file" id="chat-image" accept="image/*" class="hidden">
+                <button id="btn-chat-attach" class="text-gray-500 hover:text-purple-600 p-2 bg-gray-100 rounded-full transition">
+                    📎
+                </button>
+                <input type="text" id="chat-input" placeholder="Type message or paste GRN..." class="flex-grow input-box rounded-full px-4 py-2 bg-gray-100 border-none focus:ring-2 focus:ring-purple-500">
+                <button id="btn-chat-send" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full shadow transition flex items-center justify-center w-10 h-10">
+                    ➤
+                </button>
+            </div>
+            <div id="chat-img-preview" class="hidden absolute bottom-16 left-4 bg-white p-1 border rounded shadow-lg">
+                <img id="preview-img" src="" class="h-16 w-16 object-cover rounded">
+                <button id="btn-clear-img" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">x</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnt87woppTbR8b1d9cCaqFTQOptf2YGAA",
+            authDomain: "salary-tracker-768a9.firebaseapp.com",
+            projectId: "salary-tracker-768a9",
+            storageBucket: "salary-tracker-768a9.firebasestorage.app",
+            messagingSenderId: "533403739591",
+            appId: "1:533403739591:web:ceba8d71751b1963fd25e2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Global State
+        window.extractedData = null;
+        let currentUser = null;
+        let userSettings = {};
+        let masterHistory = [];
+        let chatBase64Img = null;
+
+        // Constants
+        const DIVISOR = 0.625;
+        const MULTIPLIER = 1000;
+
+        // ================= UI CONTROLS =================
+        const els = {
+            authScreen: document.getElementById('auth-screen'),
+            mainApp: document.getElementById('main-app'),
+            tabScanner: document.getElementById('tab-scanner'),
+            tabPC: document.getElementById('tab-pc'),
+            viewScanner: document.getElementById('view-scanner'),
+            viewPC: document.getElementById('view-pc'),
+            settingsHeader: document.getElementById('settings-header'),
+            settingsBody: document.getElementById('settings-body'),
+            chatModal: document.getElementById('chat-modal'),
+            chatPanel: document.getElementById('chat-panel'),
+            activeDataUI: document.getElementById('active-data-ui'),
+            emptyState: document.getElementById('empty-state'),
+            batchesContainer: document.getElementById('batches-container')
+        };
+
+        // Tab Switching
+        els.tabScanner.onclick = () => {
+            els.tabScanner.classList.add('tab-active', 'text-blue-500');
+            els.tabScanner.classList.remove('text-gray-500');
+            els.tabPC.classList.remove('tab-active', 'text-blue-500');
+            els.tabPC.classList.add('text-gray-500');
+            els.viewScanner.classList.remove('hidden');
+            els.viewPC.classList.add('hidden');
+        };
+        els.tabPC.onclick = () => {
+            els.tabPC.classList.add('tab-active', 'text-blue-500');
+            els.tabPC.classList.remove('text-gray-500');
+            els.tabScanner.classList.remove('tab-active', 'text-blue-500');
+            els.tabScanner.classList.add('text-gray-500');
+            els.viewPC.classList.remove('hidden');
+            els.viewScanner.classList.add('hidden');
+        };
+
+        // Settings Accordion
+        els.settingsHeader.onclick = () => {
+            els.settingsBody.classList.toggle('hidden');
+            document.getElementById('settings-icon').innerText = els.settingsBody.classList.contains('hidden') ? '▼' : '▲';
+        };
+
+        // Chat Modal
+        document.getElementById('btn-start-ai').onclick = () => {
+            els.chatModal.classList.remove('hidden');
+            setTimeout(() => els.chatPanel.classList.remove('translate-x-full'), 10);
+        };
+        document.getElementById('btn-close-chat').onclick = () => {
+            els.chatPanel.classList.add('translate-x-full');
+            setTimeout(() => els.chatModal.classList.add('hidden'), 300);
+        };
+
+        // File to Base64 utility
+        const fileToBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        // ================= AUTHENTICATION =================
+        document.getElementById('btn-login').onclick = async () => {
+            const e = document.getElementById('auth-email').value, p = document.getElementById('auth-pass').value;
+            try { await signInWithEmailAndPassword(auth, e, p); } 
+            catch (err) { Swal.fire('Error', err.message, 'error'); }
+        };
+        document.getElementById('btn-signup').onclick = async () => {
+            const e = document.getElementById('auth-email').value, p = document.getElementById('auth-pass').value;
+            try { await createUserWithEmailAndPassword(auth, e, p); } 
+            catch (err) { Swal.fire('Error', err.message, 'error'); }
+        };
+        document.getElementById('btn-logout').onclick = () => signOut(auth);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-display').innerText = user.email;
+                els.authScreen.classList.add('hidden-app');
+                els.mainApp.classList.remove('hidden-app');
+                await loadSettings();
+                await loadActiveSession();
+                listenToMasterHistory();
+            } else {
+                currentUser = null;
+                els.authScreen.classList.remove('hidden-app');
+                els.mainApp.classList.add('hidden-app');
+            }
+        });
+
+        // ================= SETTINGS & AUTO-SAVE =================
+        async function loadSettings() {
+            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/config/settings`));
+            if (docSnap.exists()) {
+                userSettings = docSnap.data();
+                document.getElementById('api-key').value = userSettings.apiKey || '';
+                document.getElementById('api-model').value = userSettings.model || 'gemini-2.5-flash';
+                document.getElementById('ai-persona').value = userSettings.persona || '';
+                document.getElementById('pm-spec').value = userSettings.pmSpec || '';
+            }
+        }
+
+        document.getElementById('btn-save-settings').onclick = async () => {
+            const data = {
+                apiKey: document.getElementById('api-key').value,
+                model: document.getElementById('api-model').value,
+                persona: document.getElementById('ai-persona').value,
+                pmSpec: document.getElementById('pm-spec').value
+            };
+            
+            const fileInner = document.getElementById('file-inner').files[0];
+            if (fileInner) data.templateInner = await fileToBase64(fileInner);
+            else if (userSettings.templateInner) data.templateInner = userSettings.templateInner;
+
+            const fileOuter = document.getElementById('file-outer').files[0];
+            if (fileOuter) data.templateOuter = await fileToBase64(fileOuter);
+            else if (userSettings.templateOuter) data.templateOuter = userSettings.templateOuter;
+
+            await setDoc(doc(db, `users/${currentUser.uid}/config/settings`), data);
+            userSettings = data;
+            Swal.fire('Saved!', 'Settings updated successfully.', 'success');
+        };
+
+        window.autoSave = async function() {
+            if (!currentUser || !window.extractedData) return;
+            
+            // Collect common info back into object
+            window.extractedData.supplierName = document.getElementById('common-supplier').value;
+            window.extractedData.approvalNo = document.getElementById('common-approval').value;
+            window.extractedData.grnNo = document.getElementById('common-grn').value;
+            window.extractedData.dcNo = document.getElementById('common-dcno').value;
+            window.extractedData.dcDate = document.getElementById('common-dcdate').value;
+
+            // Collect batch info
+            window.extractedData.batches.forEach((b, i) => {
+                b.brandName = document.getElementById(`b-brand-${i}`).value;
+                b.batchNo = document.getElementById(`b-batch-${i}`).value;
+                b.receivedQty = document.getElementById(`b-qty-${i}`).value;
+                b.category = document.getElementById(`b-cat-${i}`).value;
+                b.po_no = document.getElementById(`b-pono-${i}`).value;
+                b.po_date = document.getElementById(`b-podate-${i}`).value;
+                b.ar_no = document.getElementById(`b-arno-${i}`).value;
+                b.ar_date = document.getElementById(`b-ardate-${i}`).value;
+                b.spec = document.getElementById(`b-spec-${i}`).value;
+                b.target_min_gsm = document.getElementById(`b-min-${i}`).value;
+                b.target_max_gsm = document.getElementById(`b-max-${i}`).value;
+                
+                // Save GSMs arrays
+                b.samples = [];
+                for(let s=0; s<9; s++){
+                    b.samples.push({
+                        weight: document.getElementById(`w_${i}_${s}`).value,
+                        gsm: document.getElementById(`gsm_${i}_${s}`).innerText
+                    });
+                }
+            });
+
+            await setDoc(doc(db, `users/${currentUser.uid}/active_session/current_scan`), window.extractedData);
+            console.log("Session Auto-Saved.");
+        };
+
+        async function loadActiveSession() {
+            const snap = await getDoc(doc(db, `users/${currentUser.uid}/active_session/current_scan`));
+            if (snap.exists() && snap.data().batches) {
+                window.extractedData = snap.data();
+                renderUIFromData();
+            }
+        }
+
+        // ================= MATH ENGINE =================
+        window.calcGsmFromWeight = function(weightStr) {
+            let w = parseFloat(weightStr);
+            if(isNaN(w)) w = 0;
+            return ((w / DIVISOR) * MULTIPLIER).toFixed(1);
+        };
+
+        window.calcWeightFromGsm = function(gsmStr) {
+            let g = parseFloat(gsmStr);
+            if(isNaN(g)) g = 0;
+            return ((g * DIVISOR) / MULTIPLIER).toFixed(3);
+        };
+
+        window.manualEditGsm = function(batchIdx, sampleIdx) {
+            let newGsm = document.getElementById(`input_gsm_${batchIdx}_${sampleIdx}`).value;
+            let exactWeight = calcWeightFromGsm(newGsm);
+            
+            document.getElementById(`w_${batchIdx}_${sampleIdx}`).value = exactWeight;
+            document.getElementById(`gsm_${batchIdx}_${sampleIdx}`).innerText = parseFloat(newGsm).toFixed(1);
+            
+            recalcAverage(batchIdx);
+            autoSave();
+        };
+
+        function recalcAverage(batchIdx) {
+            let sum = 0;
+            for(let i=0; i<9; i++) {
+                sum += parseFloat(document.getElementById(`gsm_${batchIdx}_${i}`).innerText || 0);
+            }
+            document.getElementById(`avg_${batchIdx}`).innerText = (sum / 9).toFixed(1);
+        }
+
+        window.applyTargetAvg = function(batchIdx) {
+            let targetStr = document.getElementById(`target_input_${batchIdx}`).value;
+            let targetAvg = parseFloat(targetStr);
+            let minGsm = parseFloat(document.getElementById(`b-min-${batchIdx}`).value) || targetAvg - 15;
+            let maxGsm = parseFloat(document.getElementById(`b-max-${batchIdx}`).value) || targetAvg + 15;
+
+            if(isNaN(targetAvg)) return;
+
+            let targetWeight = (targetAvg * DIVISOR) / MULTIPLIER;
+            let baseWeightMg = Math.floor(targetWeight * 1000); // work in integers to avoid float issues
+            let totalNeededMg = Math.round(((targetAvg * 9) * DIVISOR) / MULTIPLIER * 1000);
+            
+            let weightsMg = new Array(9).fill(baseWeightMg);
+            let diff = totalNeededMg - (baseWeightMg * 9);
+            for(let i=0; i<diff; i++) weightsMg[i]++;
+
+            // 30 times Random Shuffle
+            for(let loop=0; loop<30; loop++) {
+                let i1 = Math.floor(Math.random()*9);
+                let i2 = Math.floor(Math.random()*9);
+                if(i1 !== i2) {
+                    let newMg1 = weightsMg[i1] + 1; // +0.001
+                    let newMg2 = weightsMg[i2] - 1; // -0.001
+                    
+                    let g1 = ((newMg1/1000)/DIVISOR)*MULTIPLIER;
+                    let g2 = ((newMg2/1000)/DIVISOR)*MULTIPLIER;
+                    
+                    if(g1 >= minGsm && g1 <= maxGsm && g2 >= minGsm && g2 <= maxGsm) {
+                        weightsMg[i1] = newMg1;
+                        weightsMg[i2] = newMg2;
+                    }
+                }
+            }
+
+            for(let i=0; i<9; i++) {
+                let finalW = (weightsMg[i]/1000).toFixed(3);
+                document.getElementById(`w_${batchIdx}_${i}`).value = finalW;
+                document.getElementById(`gsm_${batchIdx}_${i}`).innerText = calcGsmFromWeight(finalW);
+                document.getElementById(`input_gsm_${batchIdx}_${i}`).value = calcGsmFromWeight(finalW);
+            }
+            
+            // Set exact string
+            document.getElementById(`avg_${batchIdx}`).innerText = targetStr;
+            autoSave();
+        };
+
+        // Initialize empty weights if AI didn't provide
+        function ensureSamples(batch) {
+            if(!batch.samples || batch.samples.length !== 9) {
+                batch.samples = [];
+                for(let i=0; i<9; i++) batch.samples.push({weight: '0.000', gsm: '0.0'});
+            }
+        }
+
+        // ================= UI RENDERING =================
+        function renderUIFromData() {
+            if (!window.extractedData || !window.extractedData.batches) {
+                els.emptyState.classList.remove('hidden');
+                els.activeDataUI.classList.add('hidden');
+                return;
+            }
+
+            els.emptyState.classList.add('hidden');
+            els.activeDataUI.classList.remove('hidden');
+
+            const d = window.extractedData;
+            document.getElementById('common-supplier').value = d.supplierName || '';
+            document.getElementById('common-approval').value = d.approvalNo || '';
+            document.getElementById('common-grn').value = d.grnNo || '';
+            document.getElementById('common-dcno').value = d.dcNo || '';
+            document.getElementById('common-dcdate').value = d.dcDate || '';
+
+            els.batchesContainer.innerHTML = '';
+            d.batches.forEach((b, idx) => {
+                ensureSamples(b);
+                
+                // Mock AQL Data
+                let aqlHtml = `
+                    <div class="flex space-x-2 text-xs mb-3 font-semibold text-gray-500">
+                        <span class="border rounded px-2 bg-gray-50">S-1: 5 <span class="text-red-500">(0/1)</span></span>
+                        <span class="border rounded px-2 bg-gray-50">S-2: 8 <span class="text-red-500">(0/1)</span></span>
+                        <span class="border rounded px-2 bg-gray-50">S-3: 20 <span class="text-red-500">(0/1)</span></span>
+                        <span class="border rounded px-2 bg-gray-50">S-4: 50 <span class="text-red-500">(0/1)</span></span>
+                        <span class="border rounded px-2 bg-blue-100 text-blue-800">Lvl I: 125 (3/4)</span>
+                        <span class="border rounded px-2 bg-blue-100 text-blue-800">Lvl II: 315 (14/15)</span>
+                    </div>
+                `;
+
+                let rowsHtml = '';
+                for(let i=0; i<9; i++) {
+                    let s = b.samples[i];
+                    rowsHtml += `
+                        <div class="flex items-center justify-between p-2 border-b text-sm">
+                            <span class="w-8 font-bold text-gray-500">${i+1})</span>
+                            <input type="text" id="w_${idx}_${i}" value="${s.weight}" class="w-20 border-b-2 border-gray-400 text-center font-bold bg-transparent outline-none" readonly>
+                            <span class="text-gray-400">/ 0.625 x 1000 = </span>
+                            <div class="relative">
+                                <span id="gsm_${idx}_${i}" class="hidden">${s.gsm}</span>
+                                <input type="number" id="input_gsm_${idx}_${i}" value="${s.gsm}" step="0.1" class="w-16 border border-dashed border-blue-400 text-blue-700 font-bold rounded text-center" onchange="manualEditGsm(${idx}, ${i})">
+                            </div>
+                        </div>
+                    `;
+                }
+
+                let html = `
+                    <div class="border rounded-lg p-4 bg-white shadow-sm">
+                        ${aqlHtml}
+                        <div class="grid grid-cols-4 gap-3 mb-4 text-sm bg-slate-50 p-3 rounded">
+                            <div><label class="block text-xs text-gray-500">Brand</label><input type="text" id="b-brand-${idx}" value="${b.brandName || ''}" class="input-box" onchange="autoSave()"></div>
+                            <div><label class="block text-xs text-gray-500">Batch</label><input type="text" id="b-batch-${idx}" value="${b.batchNo || ''}" class="input-box font-mono" onchange="autoSave()"></div>
+                            <div><label class="block text-xs text-gray-500">Qty</label><input type="text" id="b-qty-${idx}" value="${b.receivedQty || ''}" class="input-box" onchange="autoSave()"></div>
+                            <div><label class="block text-xs text-gray-500">Category</label><input type="text" id="b-cat-${idx}" value="${b.category || ''}" class="input-box" onchange="autoSave()"></div>
+                            
+                            <div><label class="block text-xs text-gray-500">PO NO</label><input type="text" id="b-pono-${idx}" value="${b.po_no || ''}" class="input-box border-t-0 border-l-0 border-r-0 rounded-none border-b-2" onchange="autoSave()"></div>
+                            <div><label class="block text-xs text-gray-500">PO DATE</label><input type="text" id="b-podate-${idx}" value="${b.po_date || ''}" class="input-box border-t-0 border-l-0 border-r-0 rounded-none border-b-2" onchange="autoSave()"></div>
+                            <div><label class="block text-xs text-gray-500">AR NO</label><input type="text" id="b-arno-${idx}" value="${b.ar_no || ''}" class="input-box border-t-0 border-l-0 border-r-0 rounded-none border-b-2" onchange="autoSave()"></div>
+                            <div><label class="block text-xs text-gray-500">AR DATE</label><input type="text" id="b-ardate-${idx}" value="${b.ar_date || ''}" class="input-box border-t-0 border-l-0 border-r-0 rounded-none border-b-2" onchange="autoSave()"></div>
+                        </div>
+
+                        <div class="bg-slate-800 text-white rounded-t-lg p-3 flex justify-between items-center text-sm">
+                            <span class="font-bold">GSM Calculations (9 Editable Samples)</span>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="b-min-${idx}" value="${b.target_min_gsm || 250}" class="w-14 text-black text-center rounded py-1" onchange="autoSave()"> 
+                                <span>-</span>
+                                <input type="number" id="b-max-${idx}" value="${b.target_max_gsm || 260}" class="w-14 text-black text-center rounded py-1" onchange="autoSave()">
+                                <input type="number" id="target_input_${idx}" placeholder="288.2" step="0.1" class="w-16 text-black text-center rounded py-1 ml-2 border-2 border-green-500">
+                                <button class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded font-bold" onclick="applyTargetAvg(${idx})">🎯 TARGET</button>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-slate-300 rounded-b-lg border-t-0">
+                            ${rowsHtml}
+                            <div class="bg-green-100 text-green-800 text-center font-bold p-3 rounded-b-lg text-lg border-t">
+                                Calculated Average = <span id="avg_${idx}">0.0</span> GSM
+                            </div>
+                        </div>
+
+                        <div class="mt-4"><label class="block text-xs text-gray-500">Specification Details</label><textarea id="b-spec-${idx}" class="input-box text-sm w-full" rows="1" onchange="autoSave()">${b.spec || ''}</textarea></div>
+                    </div>
+                `;
+                els.batchesContainer.insertAdjacentHTML('beforeend', html);
+                recalcAverage(idx);
+            });
+        }
+
+        // ================= AI CHAT LOGIC =================
+        document.getElementById('btn-chat-attach').onclick = () => document.getElementById('chat-image').click();
+        
+        document.getElementById('chat-image').onchange = async (e) => {
+            if(e.target.files[0]) {
+                chatBase64Img = await fileToBase64(e.target.files[0]);
+                document.getElementById('preview-img').src = chatBase64Img;
+                document.getElementById('chat-img-preview').classList.remove('hidden');
+            }
+        };
+
+        document.getElementById('btn-clear-img').onclick = () => {
+            chatBase64Img = null;
+            document.getElementById('chat-image').value = '';
+            document.getElementById('chat-img-preview').classList.add('hidden');
+        };
+
+        function addChatMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-lg max-w-[85%] text-sm shadow-sm ${sender === 'user' ? 'bg-blue-100 text-blue-900 self-end ml-auto' : 'bg-purple-100 text-purple-900 self-start'}`;
+            div.innerText = text;
+            els.chatPanel.querySelector('#chat-history').appendChild(div);
+            div.scrollIntoView({behavior: "smooth"});
+        }
+
+        document.getElementById('btn-chat-send').onclick = async () => {
+            const inputEl = document.getElementById('chat-input');
+            const userText = inputEl.value.trim();
+            if (!userText && !chatBase64Img) return;
+
+            addChatMessage(userText || '[Image Attached]', 'user');
+            inputEl.value = '';
+
+            // Handle Local Edit Command
+            if (userText.toLowerCase().startsWith('edit pm/')) {
+                let searchGrn = userText.substring(5).trim().toLowerCase();
+                let found = masterHistory.find(h => h.grnNo.toLowerCase() === searchGrn);
+                if (found) {
+                    window.extractedData = JSON.parse(JSON.stringify(found));
+                    renderUIFromData();
+                    autoSave();
+                    addChatMessage(`Done beta! GRN ${found.grnNo} load kar diya he, UI check karo.`, 'ai');
+                    return;
+                } else {
+                    addChatMessage(`Arey beta, ${searchGrn} history me mila nahi.`, 'ai');
+                    return;
+                }
+            }
+
+            if (!userSettings.apiKey) {
+                addChatMessage('Beta, pehle settings me jake Gemini API key dalo!', 'ai');
+                return;
+            }
+
+            addChatMessage('...', 'ai'); // Typing indicator
+            
+            try {
+                const model = userSettings.model || 'gemini-2.5-flash';
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userSettings.apiKey}`;
+                
+                let parts = [{text: userText || 'Extract data from image.'}];
+                if(chatBase64Img) {
+                    parts.push({
+                        inlineData: {
+                            mimeType: "image/jpeg", // or png based on file
+                            data: chatBase64Img.split(',')[1]
+                        }
+                    });
+                }
+
+                // Append strict system prompt instructions directly to prompt to ensure compliance on v1beta
+                parts[0].text = `SYSTEM INSTRUCTION: You must act as "adi papa". Talk in Hinglish first. 
+                Then strictly output a JSON block at the very end of your response formatted EXACTLY as:
+                {"supplierName": "...", "approvalNo": "...", "grnNo": "...", "dcNo": "...", "dcDate": "...", "batches": [ { "brandName": "...", "batchNo": "...", "receivedQty": "...", "category": "Inner or Outer", "po_no": "...", "po_date": "...", "ar_no": "...", "ar_date": "...", "target_min_gsm": 253, "target_max_gsm": 255, "spec": "..." } ]}
+                Use this Master Spec list for matching specs: ${userSettings.pmSpec || 'None provided'}. 
+                
+                USER MESSAGE: ` + parts[0].text;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: parts }] })
+                });
+
+                const result = await response.json();
+                let aiText = result.candidates[0].content.parts[0].text;
+                
+                // Remove typing indicator
+                const historyDiv = els.chatPanel.querySelector('#chat-history');
+                historyDiv.removeChild(historyDiv.lastChild);
+
+                // Parse JSON block
+                const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+                if(jsonMatch) {
+                    let jsonData = JSON.parse(jsonMatch[0]);
+                    window.extractedData = jsonData;
+                    renderUIFromData();
+                    autoSave();
+                    
+                    // Display response text without the JSON payload
+                    let chatText = aiText.replace(jsonMatch[0], '').trim();
+                    addChatMessage(chatText || 'Data extracted and loaded beta!', 'ai');
+                } else {
+                    addChatMessage(aiText, 'ai'); // No JSON found
+                }
+
+                document.getElementById('btn-clear-img').click();
+
+            } catch (err) {
+                console.error(err);
+                addChatMessage('Kuch error aagaya beta: ' + err.message, 'ai');
+            }
+        };
+
+        // ================= FIRESTORE SYNC & PC VIEW =================
+        document.getElementById('btn-send-pc').onclick = async () => {
+            if(!window.extractedData) return;
+            autoSave(); // sync latest inputs
+
+            const docData = {
+                ...window.extractedData,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                await addDoc(collection(db, "qc_word_history_master"), docData);
+                Swal.fire('Sent!', 'Data added to PC View History Master.', 'success');
+                window.extractedData = null; // Clear active
+                await setDoc(doc(db, `users/${currentUser.uid}/active_session/current_scan`), {});
+                renderUIFromData();
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
+
+        function listenToMasterHistory() {
+            const q = query(collection(db, "qc_word_history_master"), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snapshot) => {
+                masterHistory = [];
+                let tbody = document.getElementById('history-table-body');
+                tbody.innerHTML = '';
+                
+                snapshot.forEach((doc) => {
+                    let d = doc.data();
+                    d.id = doc.id;
+                    masterHistory.push(d);
+                    
+                    let batchNames = d.batches ? d.batches.map(b=>b.batchNo).join(', ') : '';
+                    let cats = d.batches ? d.batches.map(b=>b.category).join(', ') : '';
+                    
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="p-2 border text-center"><input type="checkbox" class="row-chk" value="${doc.id}"></td>
+                        <td class="p-2 border">${new Date(d.timestamp).toLocaleString()}</td>
+                        <td class="p-2 border font-bold text-blue-700">${d.grnNo || ''}</td>
+                        <td class="p-2 border">${d.supplierName || ''}</td>
+                        <td class="p-2 border">${batchNames}</td>
+                        <td class="p-2 border">${cats}</td>
+                        <td class="p-2 border"><button class="text-blue-500 hover:underline" onclick="loadHistoryItem('${doc.id}')">Load to UI</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        document.getElementById('chk-all').onchange = (e) => {
+            document.querySelectorAll('.row-chk').forEach(chk => chk.checked = e.target.checked);
+        };
+
+        window.loadHistoryItem = function(id) {
+            let item = masterHistory.find(h => h.id === id);
+            if(item) {
+                window.extractedData = JSON.parse(JSON.stringify(item));
+                els.tabScanner.click();
+                renderUIFromData();
+                autoSave();
+            }
+        };
+
+        // ================= WORD DOC GENERATION =================
+        function base64ToBinary(dataURI) {
+            var raw = window.atob(dataURI.split(',')[1]);
+            var rawLength = raw.length;
+            var array = new Uint8Array(new ArrayBuffer(rawLength));
+            for(let i = 0; i < rawLength; i++) array[i] = raw.charCodeAt(i);
+            return array;
+        }
+
+        async function generateDocx(categoryMode) {
+            let selectedIds = Array.from(document.querySelectorAll('.row-chk:checked')).map(c => c.value);
+            if(selectedIds.length === 0) return Swal.fire('Error', 'Please select rows first', 'warning');
+
+            let templateB64 = categoryMode === 'INNER' ? userSettings.templateInner : userSettings.templateOuter;
+            if(!templateB64) return Swal.fire('Error', `Please upload ${categoryMode} template in settings first.`, 'error');
+
+            // Collect all filtered batches for Docxtemplater
+            let printBatches = [];
+            
+            selectedIds.forEach(id => {
+                let docData = masterHistory.find(h => h.id === id);
+                if(docData && docData.batches) {
+                    docData.batches.forEach((b, bIdx) => {
+                        if(b.category.toUpperCase() === categoryMode || b.category.toUpperCase().includes(categoryMode)) {
+                            // Merge common data into batch scope for templater
+                            let merged = { ...docData, ...b };
+                            
+                            // VERY IMPORTANT WORD LOGIC: Append " Nos" for Inner
+                            if(categoryMode === 'INNER') {
+                                merged.receivedQty = String(merged.receivedQty).replace(/ Nos/g, '') + " Nos";
+                            }
+                            
+                            // Flatten sample variables for docxtemplater (e.g. gsm1, w1)
+                            if(merged.samples && merged.samples.length === 9) {
+                                merged.samples.forEach((s, idx) => {
+                                    merged[`w${idx+1}`] = s.weight;
+                                    merged[`gsm${idx+1}`] = s.gsm;
+                                });
+                                // calculate avg again for print
+                                let sum = merged.samples.reduce((a,c) => a + parseFloat(c.gsm||0), 0);
+                                merged.avg_gsm = (sum/9).toFixed(1);
+                            }
+                            printBatches.push(merged);
+                        }
+                    });
+                }
+            });
+
+            if(printBatches.length === 0) return Swal.fire('Info', `No ${categoryMode} batches found in selected rows.`, 'info');
+
+            try {
+                let zip = new PizZip(base64ToBinary(templateB64));
+                let doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+                
+                // Wrap in root array if template uses {#batches} loop, or just pass root if singular
+                doc.render({ batches: printBatches }); 
+                
+                let out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                saveAs(out, `QC_Merged_${categoryMode}_${new Date().getTime()}.docx`);
+            } catch(e) {
+                console.error(e);
+                Swal.fire('Error generating document', e.message, 'error');
+            }
+        }
+
+        document.getElementById('btn-dl-inner').onclick = () => generateDocx('INNER');
+        document.getElementById('btn-dl-outer').onclick = () => generateDocx('OUTER');
+
+    </script>
+</body>
+</html>
