@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
-    <title>UPPL QC Command Center (Final Perfect Edition)</title>
+    <title>UPPL QC Command Center (v2.2 Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
@@ -42,11 +42,17 @@
         .editable-gsm { border: 2px solid #cbd5e1; background: white; border-radius: 8px; transition: all 0.2s; font-family: monospace; width: 100%; }
         .editable-gsm:focus { border-color: #6366f1; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
         
-        /* Remove arrows from number inputs for cleaner look */
         input[type="number"]::-webkit-inner-spin-button, 
         input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
     </style>
+
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("🚨 System Error aagaya bhai: \n" + message + "\n\nLine: " + lineno);
+            return true; 
+        };
+    </script>
 </head>
 <body class="bg-gray-100 font-sans pb-24 relative overflow-x-hidden">
 
@@ -57,9 +63,9 @@
     </div>
 
     <div id="loginScreen" class="fixed inset-0 bg-slate-950 bg-opacity-90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-10 w-full max-w-sm border border-slate-100 transition-transform duration-500 hover:scale-105">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-10 w-full max-w-sm border border-slate-100 transition-transform duration-500 hover:scale-105 relative">
             <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2">UPPL QC</h2>
-            <p class="text-center text-gray-500 font-bold text-xs uppercase tracking-widest mb-8">ADMIN PORTAL</p>
+            <p class="text-center text-gray-500 font-bold text-xs uppercase tracking-widest mb-8">ADMIN PORTAL <span class="text-indigo-500 font-black">v2.2</span></p>
             <div class="space-y-5">
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1.5 tracking-wider">Company ID</label>
@@ -69,7 +75,7 @@
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1.5 tracking-wider">Password</label>
                     <input type="password" id="loginPass" placeholder="******" class="futu-input text-base">
                 </div>
-                <button onclick="handleLogin()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold py-4 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 transform active:scale-95">
+                <button onclick="window.handleLogin()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold py-4 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 transform active:scale-95">
                     Enter Dashboard
                 </button>
             </div>
@@ -80,14 +86,14 @@
         <div class="bg-slate-950 shadow-xl sticky top-0 z-50">
             <div class="max-w-4xl mx-auto flex flex-row items-center justify-between overflow-x-auto hide-scrollbar">
                 <div class="flex flex-row w-full">
-                    <button id="tabScanBtn" onclick="switchTab('scan')" class="flex-1 py-4 px-2 font-extrabold text-center transition bg-slate-800 text-indigo-400 border-b-4 border-indigo-500 flex items-center justify-center gap-1 md:gap-2 text-[10px] md:text-sm uppercase tracking-wider whitespace-nowrap">
+                    <button id="tabScanBtn" onclick="window.switchTab('scan')" class="flex-1 py-4 px-2 font-extrabold text-center transition bg-slate-800 text-indigo-400 border-b-4 border-indigo-500 flex items-center justify-center gap-1 md:gap-2 text-[10px] md:text-sm uppercase tracking-wider whitespace-nowrap">
                         📝 Scanner
                     </button>
-                    <button id="tabWorkbookBtn" onclick="switchTab('workbook')" class="flex-1 py-4 px-2 font-extrabold text-center transition text-slate-400 hover:bg-slate-800/50 flex items-center justify-center gap-1 md:gap-2 text-[10px] md:text-sm uppercase tracking-wider whitespace-nowrap">
+                    <button id="tabWorkbookBtn" onclick="window.switchTab('workbook')" class="flex-1 py-4 px-2 font-extrabold text-center transition text-slate-400 hover:bg-slate-800/50 flex items-center justify-center gap-1 md:gap-2 text-[10px] md:text-sm uppercase tracking-wider whitespace-nowrap">
                         💻 PC View
                     </button>
                 </div>
-                <button onclick="handleLogout()" class="px-4 md:px-6 py-4 font-bold text-center transition text-red-400 hover:bg-red-950/20 text-[10px] md:text-xs uppercase tracking-wider border-l border-slate-800 whitespace-nowrap shrink-0">
+                <button onclick="window.handleLogout()" class="px-4 md:px-6 py-4 font-bold text-center transition text-red-400 hover:bg-red-950/20 text-[10px] md:text-xs uppercase tracking-wider border-l border-slate-800 whitespace-nowrap shrink-0">
                     Logout
                 </button>
             </div>
@@ -104,7 +110,7 @@
                     <div class="p-4 md:p-8 space-y-6 bg-slate-50">
                         <div class="bg-white p-4 rounded-xl border shadow-sm">
                             <label class="block text-xs font-bold text-gray-600 mb-1.5 tracking-wider">🔑 GitHub API Key</label>
-                            <input type="password" id="apiKey" onchange="saveApiKeyToCloud()" placeholder="github_pat_..." class="futu-input text-xs md:text-sm mb-3" style="font-family: monospace;">
+                            <input type="password" id="apiKey" onchange="window.saveApiKeyToCloud()" placeholder="github_pat_..." class="futu-input text-xs md:text-sm mb-3" style="font-family: monospace;">
                             <select id="aiModel" class="futu-input font-bold text-xs md:text-sm text-blue-900 bg-white">
                                 <option value="gpt-4o" selected>🧠 ChatGPT-4o (High Accuracy)</option>
                                 <option value="gpt-4o-mini">⚡ ChatGPT-4o-mini</option>
@@ -116,17 +122,17 @@
                                 <span id="specStatus" class="text-[9px] bg-green-100 text-green-800 px-2 py-1 rounded-full font-black hidden">✅ Sync</span>
                             </div>
                             <textarea id="pmSpecList" placeholder="Paste Specs here..." class="futu-input text-xs md:text-sm h-20 resize-none" style="font-family: monospace;"></textarea>
-                            <button onclick="saveSpecsToCloud()" class="mt-3 text-[10px] md:text-xs bg-cyan-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-cyan-700 shadow-md w-full md:w-auto">Update Spec List</button>
+                            <button onclick="window.saveSpecsToCloud()" class="mt-3 text-[10px] md:text-xs bg-cyan-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-cyan-700 shadow-md w-full md:w-auto">Update Spec List</button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-200">
                             <div class="bg-white p-3 rounded-xl border shadow-sm">
                                 <label class="block text-[10px] md:text-[11px] font-bold text-gray-500 mb-1.5 uppercase">📦 INNER Template</label>
-                                <input type="file" accept=".docx" onchange="loadTemplate(event, 'Inner')" class="w-full text-[10px]">
+                                <input type="file" accept=".docx" onchange="window.loadTemplate(event, 'Inner')" class="w-full text-[10px]">
                                 <div id="statusInner" class="text-[9px] md:text-[10px] text-red-500 font-bold mt-1">Missing</div>
                             </div>
                             <div class="bg-white p-3 rounded-xl border shadow-sm">
                                 <label class="block text-[10px] md:text-[11px] font-bold text-gray-500 mb-1.5 uppercase">🗃️ OUTER Template</label>
-                                <input type="file" accept=".docx" onchange="loadTemplate(event, 'Outer')" class="w-full text-[10px]">
+                                <input type="file" accept=".docx" onchange="window.loadTemplate(event, 'Outer')" class="w-full text-[10px]">
                                 <div id="statusOuter" class="text-[9px] md:text-[10px] text-red-500 font-bold mt-1">Missing</div>
                             </div>
                         </div>
@@ -134,27 +140,27 @@
                 </details>
 
                 <div class="bg-white rounded-2xl md:rounded-3xl shadow-lg md:shadow-xl p-4 md:p-8 border border-slate-200 mb-6">
-                    <button id="startChatBtn" onclick="startAIChat()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold py-4 md:py-5 rounded-xl md:rounded-2xl shadow-indigo-200 shadow-lg hover:shadow-indigo-500/30 transition-all text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3">🤖 Initialize AI Assistant</button>
+                    <button id="startChatBtn" onclick="window.startAIChat()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold py-4 md:py-5 rounded-xl md:rounded-2xl shadow-indigo-200 shadow-lg hover:shadow-indigo-500/30 transition-all text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3">🤖 Initialize AI Assistant</button>
                     
                     <div id="chatInterface" class="bg-slate-50 border-2 border-indigo-200 rounded-2xl md:rounded-3xl overflow-hidden mt-4 md:mt-8 hidden shadow-xl shadow-indigo-500/10">
                         <div class="bg-indigo-600 text-white font-bold p-3 md:p-4 text-xs md:text-sm flex justify-between items-center shadow-md">
                             <span class="flex items-center gap-1.5 md:gap-2.5">💬 QC Scanner</span>
                             <div class="flex gap-2">
-                                <button onclick="clearRulesMemory()" class="text-[9px] md:text-[10px] bg-yellow-400 text-yellow-950 px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow font-bold hidden" id="clearRulesBtn">🧹 Clear Brain</button>
-                                <button onclick="resetChat()" class="text-[10px] md:text-xs bg-red-500 px-3 py-1 md:px-4 md:py-1.5 rounded-full shadow font-bold">New Scan</button>
+                                <button onclick="window.clearRulesMemory()" class="text-[9px] md:text-[10px] bg-yellow-400 text-yellow-950 px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow font-bold hidden" id="clearRulesBtn">🧹 Clear Brain</button>
+                                <button onclick="window.resetChat()" class="text-[10px] md:text-xs bg-red-500 px-3 py-1 md:px-4 md:py-1.5 rounded-full shadow font-bold">New Scan</button>
                             </div>
                         </div>
                         <div id="chatMessages" class="p-4 md:p-6 h-64 md:h-80 overflow-y-auto flex flex-col gap-3 font-medium text-xs md:text-sm"></div>
                         <div class="p-3 md:p-4 bg-white border-t border-indigo-100">
                             <div id="chatImagePreview" class="text-[9px] md:text-[10px] text-blue-700 font-bold mb-2 hidden flex items-center gap-2 bg-blue-50 p-2 rounded-lg w-max border border-blue-100">
                                 📎 <span id="chatImageName" class="truncate max-w-[150px]"></span> 
-                                <button onclick="removeChatImage()" class="text-red-500 bg-red-100 px-2 py-0.5 rounded-full ml-1">❌</button>
+                                <button onclick="window.removeChatImage()" class="text-red-500 bg-red-100 px-2 py-0.5 rounded-full ml-1">❌</button>
                             </div>
                             <div class="flex gap-2 md:gap-3 items-center">
                                 <label for="chatImageInput" class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm border border-slate-200 transition" title="Attach Photo">📎</label>
-                                <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="previewChatImage(event)">
-                                <input type="text" id="chatInput" placeholder="Photo/Command..." class="flex-1 futu-input text-xs md:text-sm py-2 md:py-3" onkeypress="if(event.key === 'Enter' && !this.disabled) sendUserMessage()">
-                                <button id="chatSendBtn" onclick="sendUserMessage()" class="bg-indigo-600 text-white px-4 md:px-7 py-2 md:py-3 rounded-xl md:rounded-2xl font-extrabold shadow hover:bg-indigo-700 transition active:scale-95 text-xs md:text-sm uppercase tracking-wider shrink-0">Send</button>
+                                <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="window.previewChatImage(event)">
+                                <input type="text" id="chatInput" placeholder="Photo/Command..." class="flex-1 futu-input text-xs md:text-sm py-2 md:py-3" onkeypress="if(event.key === 'Enter' && !this.disabled) window.sendUserMessage()">
+                                <button id="chatSendBtn" onclick="window.sendUserMessage()" class="bg-indigo-600 text-white px-4 md:px-7 py-2 md:py-3 rounded-xl md:rounded-2xl font-extrabold shadow hover:bg-indigo-700 transition active:scale-95 text-xs md:text-sm uppercase tracking-wider shrink-0">Send</button>
                             </div>
                         </div>
                     </div>
@@ -162,23 +168,23 @@
                     <div id="resultSection" class="mt-6 md:mt-10 border-t border-slate-200 pt-6 md:pt-8 hidden">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 border-b pb-3 border-slate-100 gap-3">
                             <h3 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2"><span class="text-green-500">✓</span> Verified QC Data</h3>
-                            <button onclick="addManualRow()" class="w-full md:w-auto bg-slate-900 text-white text-[10px] md:text-[11px] font-bold px-4 py-2.5 rounded-xl md:rounded-full shadow hover:bg-slate-800 transition active:scale-95">+ Add New Batch</button>
+                            <button onclick="window.addManualRow()" class="w-full md:w-auto bg-slate-900 text-white text-[10px] md:text-[11px] font-bold px-4 py-2.5 rounded-xl md:rounded-full shadow hover:bg-slate-800 transition active:scale-95">+ Add New Batch</button>
                         </div>
 
                         <div class="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-200 mb-6 md:mb-8 shadow-sm">
                             <h4 class="text-indigo-900 font-extrabold mb-4 text-xs md:text-sm border-b border-indigo-100 pb-2 tracking-wide uppercase">🌐 Unified GRN Details</h4>
                             <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
-                                <div class="col-span-2"><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Supplier</label><input type="text" id="inpSupplier" class="futu-input text-xs md:text-sm px-2 md:px-3" onchange="syncCommonData()"></div>
-                                <div class="col-span-2"><label class="block text-[9px] md:text-[11px] font-extrabold text-blue-700 uppercase tracking-wider mb-1">Approval No</label><input type="text" id="inpApprovalNo" class="w-full p-2 border-2 border-blue-300 rounded-xl font-bold text-xs md:text-sm bg-blue-50 focus:border-blue-500 outline-none" style="font-family: monospace;" onchange="syncCommonData()"></div>
-                                <div class="col-span-2 md:col-span-1"><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">GRN No</label><input type="text" id="inpGrn" class="futu-input text-xs md:text-sm px-2 md:px-3" style="font-family: monospace;" onchange="syncCommonData()"></div>
-                                <div><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">D.C. No</label><input type="text" id="inpDcNo" class="futu-input text-xs md:text-sm px-2 md:px-3" style="font-family: monospace;" onchange="syncCommonData()"></div>
-                                <div><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">D.C. Date</label><input type="text" id="inpDcDate" class="futu-input text-xs md:text-sm px-2 md:px-3" style="font-family: monospace;" onchange="syncCommonData()"></div>
+                                <div class="col-span-2"><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Supplier</label><input type="text" id="inpSupplier" class="futu-input text-xs md:text-sm px-2 md:px-3" onchange="window.syncCommonData()"></div>
+                                <div class="col-span-2"><label class="block text-[9px] md:text-[11px] font-extrabold text-blue-700 uppercase tracking-wider mb-1">Approval No</label><input type="text" id="inpApprovalNo" class="w-full p-2 border-2 border-blue-300 rounded-xl font-bold text-xs md:text-sm bg-blue-50 focus:border-blue-500 outline-none" style="font-family: monospace;" onchange="window.syncCommonData()"></div>
+                                <div class="col-span-2 md:col-span-1"><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">GRN No</label><input type="text" id="inpGrn" class="futu-input text-xs md:text-sm px-2 md:px-3" style="font-family: monospace;" onchange="window.syncCommonData()"></div>
+                                <div><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">D.C. No</label><input type="text" id="inpDcNo" class="futu-input text-xs md:text-sm px-2 md:px-3" style="font-family: monospace;" onchange="window.syncCommonData()"></div>
+                                <div><label class="block text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">D.C. Date</label><input type="text" id="inpDcDate" class="futu-input text-xs md:text-sm px-2 md:px-3" style="font-family: monospace;" onchange="window.syncCommonData()"></div>
                             </div>
                         </div>
 
                         <div id="batchTableBody" class="space-y-6 md:space-y-8 mb-8 md:mb-10"></div>
 
-                        <button onclick="saveToDatabase()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-extrabold py-4 md:py-5 rounded-xl md:rounded-2xl shadow-green-200 shadow-xl hover:shadow-green-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 text-sm md:text-xl uppercase tracking-wider">
+                        <button onclick="window.saveToDatabase()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-extrabold py-4 md:py-5 rounded-xl md:rounded-2xl shadow-green-200 shadow-xl hover:shadow-green-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 text-sm md:text-xl uppercase tracking-wider">
                             🚀 SEND TO MASTER DB (PC)
                         </button>
                     </div>
@@ -193,8 +199,8 @@
                     <div class="bg-slate-50 border border-slate-200 p-3 md:p-5 rounded-xl md:rounded-3xl shadow-inner flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-5 justify-between mb-6 md:mb-8">
                         <div class="text-xs md:text-base font-extrabold text-slate-900 tracking-tight">Combine Selected GRNs:</div>
                         <div class="flex flex-row gap-2 md:gap-3 w-full md:w-auto">
-                            <button onclick="downloadMultipleFromHistory('Inner')" class="flex-1 md:flex-none bg-blue-600 text-white text-[9px] md:text-xs font-bold py-2 md:py-3 px-2 md:px-5 rounded-lg md:rounded-xl shadow active:scale-95 flex items-center justify-center gap-1">📦 Merged INNER</button>
-                            <button onclick="downloadMultipleFromHistory('Outer')" class="flex-1 md:flex-none bg-purple-600 text-white text-[9px] md:text-xs font-bold py-2 md:py-3 px-2 md:px-5 rounded-lg md:rounded-xl shadow active:scale-95 flex items-center justify-center gap-1">🗃️ Merged OUTER</button>
+                            <button onclick="window.downloadMultipleFromHistory('Inner')" class="flex-1 md:flex-none bg-blue-600 text-white text-[9px] md:text-xs font-bold py-2 md:py-3 px-2 md:px-5 rounded-lg md:rounded-xl shadow active:scale-95 flex items-center justify-center gap-1">📦 Merged INNER</button>
+                            <button onclick="window.downloadMultipleFromHistory('Outer')" class="flex-1 md:flex-none bg-purple-600 text-white text-[9px] md:text-xs font-bold py-2 md:py-3 px-2 md:px-5 rounded-lg md:rounded-xl shadow active:scale-95 flex items-center justify-center gap-1">🗃️ Merged OUTER</button>
                         </div>
                     </div>
                     <div id="workbookContainer" class="space-y-4 md:space-y-5">
@@ -210,12 +216,6 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         
-        // 🚨 GLOBAL ERROR HANDLERS 🚨
-        window.onerror = function(message, source, lineno, colno, error) {
-            window.showToast("❌ System Error: " + message, "error");
-            console.error("X-Ray Global Error:", message, error);
-            return true; 
-        };
         window.addEventListener("unhandledrejection", function(event) {
             let errorMsg = event.reason ? event.reason.message : "Unknown Promise Error";
             window.showToast("❌ Network/DB Error: " + errorMsg, "error");
@@ -230,6 +230,7 @@
             messagingSenderId: "533403739591",
             appId: "1:533403739591:web:ceba8d71751b1963fd25e2"
         };
+        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -454,7 +455,6 @@
             return category === 'Outer' ? "Standard Outer Corrugated Box (As per Master)" : "Standard ITC Cyber XL Board With MET PET, Printing Embossing, Spot UV and UV Coating";
         };
 
-        // 🚀 THE ANTI-REPEAT MATH ENGINE
         window.generateGSMFromTargetAvg = function(batchIndex, targetAvg) {
             let target = parseFloat(targetAvg);
             if(isNaN(target)) return;
@@ -680,7 +680,6 @@
             appendChatMessage(`Scanner Initialize Bhai. 📸 GRN photo bhejein ya change karne bolein...`, "ai");
         }
 
-        // 🔥 FIX 1 & 2: Payload Diet for Text & Strict Prompts 🔥
         window.sendUserMessage = async function() {
             try {
                 const input = document.getElementById('chatInput');
@@ -722,7 +721,6 @@
 
                 const specListStr = window.memorySpecList || "None"; 
 
-                // 🔥 UPPL EXACT MAPPING + DATE FORMAT RULES 🔥
                 const systemPrompt = `Tum ek Professional QC Data Assistant ho. MANDATORY RULES for UPPL GRN Form extraction:
                 1. EXTRACT ALL ROWS (CRITICAL): Aakhri line tak SABKA data nikalna hai.
                 2. EXACT FIELD MAPPING (CRITICAL):
@@ -754,7 +752,6 @@
                         ]
                     });
                 } else {
-                    // 🔥 DIET JSON: Bhejne se pehle w1, g1, s_s1 sab math ka data nikal diya taaki 413 error na aaye 🔥
                     let dietData = {
                         supplierName: window.extractedData?.supplier || "",
                         approvalNo: window.extractedData?.approvalNo || "",
@@ -826,8 +823,8 @@
         function processExtractedJson(rawJsonStr) {
             try {
                 const info = JSON.parse(rawJsonStr);
-                let dietDataPrev = {supplier:window.extractedData?.supplier, grnNo:window.extractedData?.grnNo, count: window.extractedData?.batches?.length};
-                let dietDataNew = {supplier:info.supplierName, grnNo:info.grnNo, count: info.batches?.length};
+                let dietDataPrev = {supplier:window.extractedData?.supplier, grnNo:window.extractedData?.grnNo, count: window.extractedData?.batches?.length || 0};
+                let dietDataNew = {supplier:info.supplierName, grnNo:info.grnNo, count: info.batches?.length || 0};
 
                 if (window.isImageScan === false && dietDataPrev.count > 0 && dietDataNew.count < dietDataPrev.count) {
                     appendChatMessage("❌ Error: AI ne data udane ki koshish ki. Data wipe hone se bach gaya!", "ai");
@@ -912,7 +909,6 @@
             document.getElementById('resultSection').classList.remove('hidden');
         }
 
-        // 🔥 RESPONSIVE BATCH TABLE RENDER 🔥
         function renderBatchTable() {
             const tbody = document.getElementById('batchTableBody');
             tbody.innerHTML = '';
@@ -934,7 +930,7 @@
                         
                         <div class="flex-1">
                             <label class="block md:hidden text-[9px] font-bold text-slate-400 uppercase mb-1 text-center">Weight</label>
-                            <input type="number" step="0.001" value="${b['w'+k] || '0.000'}" onchange="updateManualWeight(${i}, ${k}, this.value)" class="w-full editable-gsm futu-input text-center text-xs md:text-sm font-semibold !px-1 md:!px-3" title="Manual Weight Edit">
+                            <input type="number" step="0.001" value="${b['w'+k] || '0.000'}" onchange="window.updateManualWeight(${i}, ${k}, this.value)" class="w-full editable-gsm futu-input text-center text-xs md:text-sm font-semibold !px-1 md:!px-3" title="Manual Weight Edit">
                         </div>
                         
                         <div class="shrink-0 flex flex-col items-center justify-center text-slate-400 font-mono text-[9px] md:text-[11px] leading-tight">
@@ -946,7 +942,7 @@
                         
                         <div class="flex-1">
                             <label class="block md:hidden text-[9px] font-bold text-slate-400 uppercase mb-1 text-center">GSM</label>
-                            <input type="number" step="0.1" value="${b['g'+k] || '0.0'}" onchange="updateManualGSM(${i}, ${k}, this.value)" class="w-full editable-gsm futu-input text-center md:text-right text-indigo-700 text-xs md:text-sm font-semibold !px-1 md:!px-3" title="Manual GSM Edit">
+                            <input type="number" step="0.1" value="${b['g'+k] || '0.0'}" onchange="window.updateManualGSM(${i}, ${k}, this.value)" class="w-full editable-gsm futu-input text-center md:text-right text-indigo-700 text-xs md:text-sm font-semibold !px-1 md:!px-3" title="Manual GSM Edit">
                         </div>
                     </div>`;
                 }
@@ -954,40 +950,40 @@
                 tbody.innerHTML += `
                     <div class="bg-white border border-slate-200 shadow-xl rounded-2xl md:rounded-3xl p-4 md:p-8 relative overflow-hidden transition-all hover:shadow-indigo-100/50">
                         <div class="absolute top-0 left-0 ${isInner ? 'bg-blue-600' : 'bg-purple-600'} text-white px-3 md:px-5 py-1.5 md:py-2 rounded-br-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md">Page ${i+1} (${b.category})</div>
-                        <button onclick="removeBatch(${i})" class="absolute top-2 md:top-4 right-2 md:right-4 text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-bold transition">🗑️ Remove</button>
+                        <button onclick="window.removeBatch(${i})" class="absolute top-2 md:top-4 right-2 md:right-4 text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-bold transition">🗑️ Remove</button>
                         
                         <div class="mt-8 md:mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-100 pb-4 md:pb-6 mb-4 md:mb-6">
-                            <div><label class="block text-[9px] md:text-[11px] text-gray-500 font-bold uppercase mb-1">Brand Name</label><input type="text" value="${b.brand}" onchange="updateBatch(${i}, 'brand', this.value)" class="w-full border-b-2 border-slate-200 p-1 md:p-2 font-black text-lg md:text-xl text-slate-900 focus:border-indigo-500 outline-none"></div>
+                            <div><label class="block text-[9px] md:text-[11px] text-gray-500 font-bold uppercase mb-1">Brand Name</label><input type="text" value="${b.brand}" onchange="window.updateBatch(${i}, 'brand', this.value)" class="w-full border-b-2 border-slate-200 p-1 md:p-2 font-black text-lg md:text-xl text-slate-900 focus:border-indigo-500 outline-none"></div>
                             <div class="grid grid-cols-2 gap-3 md:gap-4">
-                                <div><label class="block text-[9px] md:text-[11px] text-blue-600 font-extrabold uppercase mb-1">Batch No</label><input type="text" value="${b.batch}" onchange="updateBatch(${i}, 'batch', this.value)" class="w-full futu-input text-sm md:text-lg font-mono px-2" style="background:#f8fafc;"></div>
-                                <div><label class="block text-[9px] md:text-[11px] text-green-600 font-extrabold uppercase mb-1">Qty</label><input type="number" value="${b.qty}" onchange="updateBatch(${i}, 'qty', this.value)" class="w-full futu-input text-sm md:text-lg font-mono px-2" style="background:#f8fafc;"></div>
+                                <div><label class="block text-[9px] md:text-[11px] text-blue-600 font-extrabold uppercase mb-1">Batch No</label><input type="text" value="${b.batch}" onchange="window.updateBatch(${i}, 'batch', this.value)" class="w-full futu-input text-sm md:text-lg font-mono px-2" style="background:#f8fafc;"></div>
+                                <div><label class="block text-[9px] md:text-[11px] text-green-600 font-extrabold uppercase mb-1">Qty</label><input type="number" value="${b.qty}" onchange="window.updateBatch(${i}, 'qty', this.value)" class="w-full futu-input text-sm md:text-lg font-mono px-2" style="background:#f8fafc;"></div>
                             </div>
                         </div>
                         <div class="py-3 md:py-5 border-b border-slate-100 mb-4 md:mb-5">
                             <label class="block text-[9px] md:text-[11px] text-gray-500 font-bold uppercase mb-1">Print Specification</label>
-                            <textarea onchange="updateBatch(${i}, 'spec', this.value)" class="w-full futu-input h-16 resize-none text-[10px] md:text-xs font-mono font-bold text-slate-700" style="font-family: monospace;">${b.spec}</textarea>
+                            <textarea onchange="window.updateBatch(${i}, 'spec', this.value)" class="w-full futu-input h-16 resize-none text-[10px] md:text-xs font-mono font-bold text-slate-700" style="font-family: monospace;">${b.spec}</textarea>
                         </div>
                         <div class="pt-2 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">PO No</label><input type="text" value="${b.po_no}" onchange="updateBatch(${i}, 'po_no', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
-                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">PO Date</label><input type="text" value="${b.po_date}" onchange="updateBatch(${i}, 'po_date', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
-                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">AR No</label><input type="text" value="${b.ar_no}" onchange="updateBatch(${i}, 'ar_no', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
-                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">AR Date</label><input type="text" value="${b.ar_date}" onchange="updateBatch(${i}, 'ar_date', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
+                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">PO No</label><input type="text" value="${b.po_no}" onchange="window.updateBatch(${i}, 'po_no', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
+                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">PO Date</label><input type="text" value="${b.po_date}" onchange="window.updateBatch(${i}, 'po_date', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
+                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">AR No</label><input type="text" value="${b.ar_no}" onchange="window.updateBatch(${i}, 'ar_no', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
+                            <div><label class="block text-[9px] md:text-[10px] text-gray-500 font-bold uppercase mb-1">AR Date</label><input type="text" value="${b.ar_date}" onchange="window.updateBatch(${i}, 'ar_date', this.value)" class="w-full border-b-2 border-slate-200 text-xs md:text-sm font-bold text-slate-800 focus:border-indigo-500 outline-none"></div>
                             
                             <div class="col-span-2 md:col-span-4 mt-4 md:mt-6 border-2 border-indigo-100 rounded-2xl md:rounded-3xl overflow-hidden shadow-lg shadow-indigo-50/50">
                                 <div class="bg-indigo-950 text-indigo-100 p-3 md:p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 px-4 md:px-6">
                                     <span class="font-black text-xs md:text-sm uppercase tracking-wide">📐 GSM Math Engine</span>
                                     <div class="flex flex-row justify-between w-full md:w-auto gap-2 md:gap-4 items-center">
-                                        <button onclick="copyToExcel(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg shadow font-bold text-[10px] md:text-[11px] active:scale-95 transition flex items-center gap-1">📋 Copy</button>
+                                        <button onclick="window.copyToExcel(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg shadow font-bold text-[10px] md:text-[11px] active:scale-95 transition flex items-center gap-1">📋 Copy</button>
                                         <div class="flex items-center gap-2">
                                             <label class="text-[9px] md:text-[11px] text-green-300 font-black tracking-wider uppercase">TARGET:</label>
-                                            <input type="number" step="0.1" value="${b.avg_gsm}" onchange="generateGSMFromTargetAvg(${i}, this.value)" class="w-16 md:w-20 bg-white/10 border-2 border-green-400 rounded-lg px-1 md:px-2 py-1 md:py-1.5 text-center text-green-100 outline-none focus:border-green-300 font-black text-xs md:text-sm shadow-inner" title="Enter Target">
+                                            <input type="number" step="0.1" value="${b.avg_gsm}" onchange="window.generateGSMFromTargetAvg(${i}, this.value)" class="w-16 md:w-20 bg-white/10 border-2 border-green-400 rounded-lg px-1 md:px-2 py-1 md:py-1.5 text-center text-green-100 outline-none focus:border-green-300 font-black text-xs md:text-sm shadow-inner" title="Enter Target">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="p-3 md:p-6 bg-slate-50 border-b border-slate-200">
                                     ${gsmLinesHtml}
                                 </div>
-                                <div class="bg-gradient-to-r from-emerald-50 to-green-50 text-green-800 font-extrabold text-center p-3 md:p-4 text-sm md:text-xl">Extracted Avg = ${b.avg_gsm} GSM</div>
+                                <div class="bg-gradient-to-r from-emerald-50 to-green-50 text-green-800 font-extrabold text-center p-3 md:p-4 text-sm md:text-xl border-t border-emerald-100 shadow-inner">Extracted Avg = ${b.avg_gsm} GSM</div>
                             </div>
                         </div>
                     </div>
@@ -1018,11 +1014,11 @@
 
         window.saveToDatabase = async function() {
             if(!currentUser || !window.extractedData) return;
-            syncCommonData();
+            window.syncCommonData();
             try {
                 const commonDetails = { supplier: window.extractedData.supplier, approvalNo: window.extractedData.approvalNo, grnNo: window.extractedData.grnNo, dcNo: window.extractedData.dcNo, dcDate: window.extractedData.dcDate };
                 await addDoc(collection(db, 'users', currentUser.uid, 'qc_word_history_master'), { timestamp: Date.now(), dateStr: new Date().toLocaleDateString('en-IN'), ...commonDetails, batches: window.extractedData.batches });
-                showToast("🚀 Data successfully sent to Master DB!", "success");
+                window.showToast("🚀 Data successfully sent to Master DB!", "success");
             } catch(e) { alert("ERROR saving to cloud database. Ensure internet and valid API key."); }
         }
 
@@ -1047,7 +1043,7 @@
                 const zip = new ZipConstructor(base64Data, { base64: true }); const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
                 doc.render({ batches: allCombinedBatches }); const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
                 let fileName = `QC_${targetCategory}_Merged_Report.docx`; window.saveAs(out, fileName);
-                showToast(`${targetCategory} merged report downloading.`, "success");
+                window.showToast(`${targetCategory} merged report downloading.`, "success");
             } catch(error) { alert("🚨 WORD TEMPLATE ERROR 🚨\nTemplate valid .docx file hona chahiye. MS Word me khol kar 'Save As -> .docx' karke reload karein."); }
         }
 
@@ -1071,7 +1067,7 @@
                 const isExpanded = window.expandedGrnId === record.id;
                 let html = `
                 <div class="border-2 border-slate-200 rounded-2xl md:rounded-3xl shadow bg-white mb-4 md:mb-6 overflow-hidden">
-                    <div class="bg-slate-50 p-4 md:p-6 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center transition hover:bg-slate-100 gap-3 md:gap-0" onclick="toggleExpand('${record.id}')">
+                    <div class="bg-slate-50 p-4 md:p-6 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center transition hover:bg-slate-100 gap-3 md:gap-0" onclick="window.toggleExpand('${record.id}')">
                         <div class="flex items-center gap-3 md:gap-5">
                             <input type="checkbox" class="grn-checkbox w-5 h-5 md:w-6 md:h-6 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer" value="${record.id}" onclick="event.stopPropagation()">
                             <div>
@@ -1080,7 +1076,7 @@
                             </div>
                         </div>
                         <div class="flex gap-4 items-center self-end md:self-auto w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-200">
-                            <button onclick="event.stopPropagation(); deleteRecord('${record.id}')" class="text-white bg-red-500 hover:bg-red-600 px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl font-bold shadow text-[10px] md:text-xs transition">Delete</button>
+                            <button onclick="event.stopPropagation(); window.deleteRecord('${record.id}')" class="text-white bg-red-500 hover:bg-red-600 px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl font-bold shadow text-[10px] md:text-xs transition">Delete</button>
                             <span class="text-indigo-400 text-lg md:text-xl font-bold">${isExpanded ? '▲' : '▼'}</span>
                         </div>
                     </div>`;
@@ -1098,7 +1094,7 @@
                             <div class="border border-indigo-100 rounded-2xl md:rounded-3xl overflow-hidden mt-2 shadow-sm">
                                 <div class="bg-indigo-950 text-indigo-100 text-[10px] md:text-xs font-bold p-3 md:p-4 flex justify-between items-center px-3 md:px-5">
                                     <span class="text-[11px] md:text-sm">GSM Calculations</span>
-                                    <button onclick="copyHistoryWeights('${record.id}', ${bIdx})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg shadow font-bold text-[9px] md:text-[10px] active:scale-95 transition flex items-center gap-1">📋 Copy</button>
+                                    <button onclick="window.copyHistoryWeights('${record.id}', ${bIdx})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg shadow font-bold text-[9px] md:text-[10px] active:scale-95 transition flex items-center gap-1">📋 Copy</button>
                                 </div>
                                 <div class="p-3 md:p-5 font-mono text-xs md:text-sm text-slate-900 space-y-2 bg-white">`;
                         for(let i=1; i<=9; i++) { 
