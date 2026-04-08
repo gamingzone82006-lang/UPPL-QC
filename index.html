@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
-    <title>UPPL QC Command Center (v2.4 Never Skip Edition)</title>
+    <title>UPPL QC Command Center (v2.5 Auto-Switch Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
@@ -66,7 +66,7 @@
     <div id="loginScreen" class="fixed inset-0 bg-slate-950 bg-opacity-90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-10 w-full max-w-sm border border-slate-100 transition-transform duration-500 hover:scale-105 relative">
             <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2">UPPL QC</h2>
-            <p class="text-center text-gray-500 font-bold text-xs uppercase tracking-widest mb-8">ADMIN PORTAL <span class="text-indigo-500 font-black">v2.4</span></p>
+            <p class="text-center text-gray-500 font-bold text-xs uppercase tracking-widest mb-8">ADMIN PORTAL <span class="text-indigo-500 font-black">v2.5</span></p>
             <div class="space-y-5">
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1.5 tracking-wider">Company ID</label>
@@ -509,6 +509,15 @@
             window.autoSaveActiveData(); 
         };
 
+        const generateInitialGSMMath = (minGSM, maxGSM) => {
+            let minG = parseFloat(minGSM); let maxG = parseFloat(maxGSM);
+            if(isNaN(minG) || isNaN(maxG)) { minG = 265; maxG = 305; }
+            let newTarget = parseFloat((Math.random() * (maxG - minG) + minG).toFixed(1));
+            let mathObj = { target_min: minG, target_max: maxG, avg_gsm: newTarget.toFixed(1) };
+            for(let i=1; i<=9; i++) { mathObj[`w${i}`] = "0.000"; mathObj[`g${i}`] = "0.0"; }
+            return mathObj;
+        };
+
         window.updateManualWeight = function(batchIndex, sampleIndex, newWeightValue) {
             let weight = parseFloat(newWeightValue);
             if (isNaN(weight)) return;
@@ -629,7 +638,6 @@
             window.appendChatMessage(`Scanner Initialize Bhai. 📸 GRN photo bhejein ya change karne bolein...`, "ai");
         }
 
-        // 🔥 NAYA STRICT PROMPT JISME AI AASLI NAHI KAREGA 🔥
         window.sendUserMessage = async function() {
             try {
                 const input = document.getElementById('chatInput');
@@ -671,6 +679,7 @@
 
                 const specListStr = window.memorySpecList || "None"; 
 
+                // 🔥 UPDATE: AI KO DAAAT LAGA DI KI EK BHI ROW CHHUTNI NAHI CHAHIYE
                 const systemPrompt = `Tum ek Professional QC Data Assistant ho. MANDATORY RULES for UPPL GRN Form:
                 1. EXTRACT ALL ROWS (CRITICAL & STRICT): Form me jitne bhi items hain (chahe 20 ho, 25 ho ya usse bhi zyada), SABKA data nikalna hai. Tume aalas bilkul nahi karna hai. List ko beech me "..." ya "etc" lagakar nahi chhodna hai. Ek bhi row chhutni nahi chahiye.
                 2. EXACT FIELD MAPPING:
@@ -769,6 +778,7 @@
             }
         }
 
+        // 🔥 FIX: CATEGORY CHANGE HONE PAR GSM RECALCULATE HOGA 🔥
         window.processExtractedJson = function(rawJsonStr) {
             try {
                 const info = JSON.parse(rawJsonStr);
@@ -797,7 +807,15 @@
                     
                     let newTarget = parseFloat(b.avg_gsm);
                     if (isNaN(newTarget)) {
-                        newTarget = oldBatch.avg_gsm ? parseFloat(oldBatch.avg_gsm) : null;
+                        // Agar category change hui hai, toh purana GSM bhool jao!
+                        let categoryChanged = oldBatch.category && (oldBatch.category.toLowerCase() !== cat.toLowerCase());
+                        
+                        if (categoryChanged) {
+                            newTarget = null;
+                        } else {
+                            newTarget = oldBatch.avg_gsm ? parseFloat(oldBatch.avg_gsm) : null;
+                        }
+
                         if (!newTarget) {
                             let rMin = cat === 'Outer' ? 365 : 265;
                             let rMax = cat === 'Outer' ? 410 : 305;
